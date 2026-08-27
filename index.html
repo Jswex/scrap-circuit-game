@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#101319">
+  <title>Scrap Circuit</title>
+  <link rel="stylesheet" href="src/styles.css">
+</head>
+<body>
+  <main class="game-shell">
+    <header class="topbar">
+      <div class="brand"><span>SCRAP</span> CIRCUIT</div>
+      <div class="race-label">Junkyard Run <strong>2 laps</strong></div>
+      <div class="credit-label">CREDITS <strong id="credits">1,000</strong></div>
+      <span class="build-tag">PLAYTEST BUILD 01</span>
+    </header>
+
+    <section class="arena" aria-label="Racing game">
+      <canvas id="gameCanvas" width="1280" height="720"></canvas>
+      <div id="countdown" class="countdown" aria-live="polite"></div>
+
+      <aside class="hud hud-left">
+        <span class="hud-label">POSITION</span>
+        <strong id="position">1<sup>st</sup></strong>
+        <span id="lap">LAP 1 / 2</span>
+      </aside>
+
+      <aside class="hud hud-right">
+        <span class="hud-label">SPEED</span>
+        <strong id="speed">000</strong>
+        <span>KM/H</span>
+      </aside>
+
+      <div id="upgradeHud" class="upgrade-hud empty">
+        <span id="upgradeIcon">?</span>
+        <div><small>HELD UPGRADE</small><strong id="upgradeName">Drive through a crate</strong></div>
+        <kbd>SPACE</kbd>
+      </div>
+
+      <div id="toast" class="toast"></div>
+
+      <section id="startPanel" class="panel start-panel">
+        <p class="eyebrow">RACE BRIEFING</p>
+        <h1>SCRAP<br><span>CIRCUIT</span></h1>
+        <p>Beat three reckless bots across two laps. Stay on the road, grab scrap tech, and finish first.</p>
+        <div class="controls">
+          <span><kbd>WASD</kbd><small>STEER + ACCELERATE</small></span>
+          <span><kbd>SPACE</kbd><small>USE UPGRADE</small></span>
+        </div>
+        <ul class="instruction-list">
+          <li>Collect yellow crates for credits and upgrades.</li>
+          <li>Use upgrades before another crate replaces them.</li>
+          <li>Going wide snaps you back onto the road.</li>
+        </ul>
+        <button id="startButton" class="primary-button" type="button">START RACE</button>
+      </section>
+
+      <section id="finishPanel" class="panel finish-panel hidden">
+        <p class="eyebrow">RACE COMPLETE</p>
+        <h2 id="finishTitle">YOU FINISHED 1ST</h2>
+        <p id="finishStats"></p>
+        <button id="restartButton" class="primary-button" type="button">RACE AGAIN</button>
+      </section>
+
+      <div class="mobile-controls" aria-label="Touch controls">
+        <button data-key="ArrowLeft" aria-label="Steer left">←</button>
+        <button data-key="ArrowUp" aria-label="Accelerate">↑</button>
+        <button data-key="ArrowRight" aria-label="Steer right">→</button>
+        <button data-key="Space" class="use-button" aria-label="Use upgrade">⚡</button>
+      </div>
+    </section>
+  </main>
+  <script src="src/game.js"></script>
+</body>
+</html>
