@@ -2,6 +2,23 @@
 
 This is the chronological record of the project. New work should be added at the top of the log under a dated heading.
 
+## 2026-08-27 - Shortcuts and Mid-Race Choices
+
+### What changed
+
+- Added three marked shortcut roads that legally cut across corners while preserving the hard no-off-track boundary.
+- Added a timed mid-race upgrade drop that freezes the action and offers all four upgrades as selectable choices.
+- Reduced banana impact to a brief 0.35-second wobble with most momentum preserved.
+
+### Why
+
+Shortcuts add route decisions and replay variety. The paused choice screen gives players meaningful control over their build without requiring them to understand a random upgrade immediately, while the softer banana effect keeps interference interesting instead of frustrating.
+
+### Verification
+
+- Workspace diagnostics passed for HTML, CSS, and JavaScript.
+- Live browser test confirmed the popup appears during a race, shows four choices, freezes the race state, and resumes with the selected upgrade equipped.
+
 ## 2026-08-27 - Up-Left Starting Grid
 
 ### What changed

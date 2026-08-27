@@ -6,7 +6,7 @@ const ui = {
   position: document.querySelector("#position"), lap: document.querySelector("#lap"), speed: document.querySelector("#speed"),
   upgradeHud: document.querySelector("#upgradeHud"), upgradeIcon: document.querySelector("#upgradeIcon"), upgradeName: document.querySelector("#upgradeName"),
   countdown: document.querySelector("#countdown"), toast: document.querySelector("#toast"), startPanel: document.querySelector("#startPanel"),
-  finishPanel: document.querySelector("#finishPanel"), finishTitle: document.querySelector("#finishTitle"), finishStats: document.querySelector("#finishStats"), credits: document.querySelector("#credits")
+  finishPanel: document.querySelector("#finishPanel"), finishTitle: document.querySelector("#finishTitle"), finishStats: document.querySelector("#finishStats"), credits: document.querySelector("#credits"), upgradePanel: document.querySelector("#upgradePanel")
 };
 
 const TRACK = {
@@ -34,7 +34,7 @@ const upgrades = [
   { name: "BANANA PRINTER", icon: "⌁", color: "#ffe25c", help: "Print slippery hazards behind you", use(car) { car.banana = 4; } }
 ];
 
-let cars = [], crates = [], bananas = [], particles = [], state = "menu", last = 0, elapsed = 0, countdown = 0, finished = [], credits = 1000;
+let cars = [], crates = [], bananas = [], particles = [], state = "menu", last = 0, elapsed = 0, countdown = 0, nextOffer = 0, finished = [], credits = 1000;
 const camera = { x: TRACK.points[0].x, y: TRACK.points[0].y };
 
 function pointOnTrack(t, lane = 0) {
@@ -59,6 +59,8 @@ function trackTangent(t) {
   return Math.atan2(ahead.y - behind.y, ahead.x - behind.x);
 }
 
+const SHORTCUTS = [.27, .55, .78].map((from, i) => ({ start: pointOnTrack(from), end: pointOnTrack(from + [.055, .07, .085][i]) }));
+
 function makeCar(i) {
   const t = .205 + i * .012;
   const p = pointOnTrack(t, (i % 2) * 24 - 12);
@@ -68,9 +70,9 @@ function makeCar(i) {
 function reset() {
   cars = names.map((_, i) => makeCar(i));
   crates = Array.from({ length: 12 }, (_, i) => ({ ...pointOnTrack(i / 12, i % 2 ? 18 : -18), active: true, respawn: 0, spin: i }));
-  bananas = []; particles = []; finished = []; elapsed = 0; countdown = 1.6; state = "countdown";
+  bananas = []; particles = []; finished = []; elapsed = 0; countdown = 1.6; nextOffer = 8; state = "countdown";
   camera.x = cars[0].x; camera.y = cars[0].y;
-  ui.finishPanel.classList.add("hidden"); ui.startPanel.classList.add("hidden");
+  ui.finishPanel.classList.add("hidden"); ui.upgradePanel.classList.add("hidden"); ui.startPanel.classList.add("hidden");
 }
 
 function normalizeAngle(a) { while (a > Math.PI) a -= Math.PI * 2; while (a < -Math.PI) a += Math.PI * 2; return a; }
@@ -131,8 +133,20 @@ function trackDistance(x, y) {
   return nearestTrackPoint(x, y).distance;
 }
 
+function nearestRoadPoint(x, y) {
+  let nearest = nearestTrackPoint(x, y);
+  SHORTCUTS.forEach(shortcut => {
+    const dx = shortcut.end.x - shortcut.start.x, dy = shortcut.end.y - shortcut.start.y;
+    const ratio = Math.max(0, Math.min(1, ((x - shortcut.start.x) * dx + (y - shortcut.start.y) * dy) / (dx * dx + dy * dy)));
+    const closestX = shortcut.start.x + dx * ratio, closestY = shortcut.start.y + dy * ratio;
+    const distance = Math.hypot(x - closestX, y - closestY);
+    if (distance < nearest.distance) nearest = { distance, x: closestX, y: closestY };
+  });
+  return nearest;
+}
+
 function keepOnTrack(car) {
-  const nearest = nearestTrackPoint(car.x, car.y);
+  const nearest = nearestRoadPoint(car.x, car.y);
   const limit = TRACK.width / 2 - 12;
   if (nearest.distance <= limit) return;
   const distance = Math.max(nearest.distance, 1);
@@ -149,6 +163,21 @@ function useUpgrade(car) {
   if (car.i === 0) { toast(up.name + " ACTIVATED"); refreshUpgrade(); }
 }
 
+function openUpgradePanel() {
+  state = "upgrade";
+  ui.upgradePanel.classList.remove("hidden");
+}
+
+function chooseUpgrade(index) {
+  if (state !== "upgrade") return;
+  cars[0].upgrade = upgrades[index];
+  ui.upgradePanel.classList.add("hidden");
+  nextOffer = elapsed + 12;
+  state = "racing";
+  refreshUpgrade();
+  toast(upgrades[index].name + " SELECTED");
+}
+
 function update(dt) {
   particles.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt; });
   particles = particles.filter(p => p.life > 0);
@@ -160,6 +189,7 @@ function update(dt) {
   }
   if (state !== "racing") return;
   elapsed += dt;
+  if (elapsed >= nextOffer) { openUpgradePanel(); return; }
   cars.forEach((car, i) => {
     if (car.finished) return;
     if (i === 0) updatePlayer(car, dt); else updateBot(car, dt);
@@ -217,6 +247,7 @@ function drawTrack() {
   const start = pointOnTrack(0), finish = pointOnTrack(0, TRACK.width / 2);
   ctx.strokeStyle="#e8e2d4"; ctx.lineWidth=7; ctx.beginPath(); ctx.moveTo(start.x - 45, start.y - 45); ctx.lineTo(finish.x + 45, finish.y + 45); ctx.stroke();
   ctx.fillStyle="#e85d38"; for(let i=0;i<28;i++){ const p=pointOnTrack(i/28, TRACK.width/2+18); ctx.save();ctx.translate(p.x,p.y);ctx.rotate(trackTangent(i/28));ctx.fillRect(-8,-8,16,16);ctx.restore(); }
+  SHORTCUTS.forEach(shortcut => { ctx.lineCap="round"; ctx.strokeStyle="#15191d"; ctx.lineWidth=TRACK.width+22; ctx.beginPath(); ctx.moveTo(shortcut.start.x,shortcut.start.y); ctx.lineTo(shortcut.end.x,shortcut.end.y); ctx.stroke(); ctx.strokeStyle="#59636a"; ctx.lineWidth=TRACK.width; ctx.stroke(); ctx.setLineDash([18,20]); ctx.strokeStyle="#8c9496"; ctx.lineWidth=3; ctx.stroke(); ctx.setLineDash([]); });
 }
 
 function drawCrate(c){ if(!c.active)return; ctx.save();ctx.translate(c.x,c.y);ctx.rotate(c.spin);ctx.fillStyle="#ffce3a";ctx.fillRect(-14,-14,28,28);ctx.strokeStyle="#12161a";ctx.lineWidth=4;ctx.strokeRect(-14,-14,28,28);ctx.fillStyle="#12161a";ctx.font="900 18px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText("?",0,1);ctx.restore(); }
@@ -237,6 +268,7 @@ function draw() {
 
 function loop(now){ const dt=Math.min(.033,(now-last)/1000||0);last=now;update(dt);draw();requestAnimationFrame(loop); }
 document.querySelector("#startButton").addEventListener("click",reset); document.querySelector("#restartButton").addEventListener("click",reset);
+document.querySelectorAll(".upgrade-choice").forEach(button => button.addEventListener("click", () => chooseUpgrade(Number(button.dataset.upgrade))));
 document.addEventListener("keydown",e=>{keys.add(e.code);if(e.code==="Space"){e.preventDefault();useUpgrade(cars[0]);}}); document.addEventListener("keyup",e=>keys.delete(e.code));
 document.querySelectorAll(".mobile-controls button").forEach(b=>{ const code=b.dataset.key;b.addEventListener("pointerdown",e=>{e.preventDefault();keys.add(code);if(code==="Space")useUpgrade(cars[0]);});["pointerup","pointercancel","pointerleave"].forEach(ev=>b.addEventListener(ev,()=>keys.delete(code))); });
 requestAnimationFrame(loop);
