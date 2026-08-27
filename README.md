@@ -8,7 +8,11 @@ No genre, platform, or game engine has been selected yet.
 
 ## Current Status
 
-The first playable vertical slice, **Scrap Circuit**, is implemented as a dependency-free browser game. It includes a three-lap race, three bot opponents, collectible upgrades, position tracking, touch controls, and a finish state.
+The first playable vertical slice, **Scrap Circuit**, is implemented as a dependency-free browser game. It includes a fast two-lap winding race, three bot opponents, collectible upgrades, position tracking, touch controls, credits, and a finish state.
+
+## Public Website
+
+Play the deployed game at [jswex.github.io/scrap-circuit-game](https://jswex.github.io/scrap-circuit-game/).
 
 Open `index.html` in a browser to play. Use WASD or the arrow keys to drive and Space to activate an upgrade.
 
