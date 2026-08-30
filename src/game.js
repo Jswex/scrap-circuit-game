@@ -6,7 +6,7 @@ const ui = {
   position: document.querySelector("#position"), lap: document.querySelector("#lap"), speed: document.querySelector("#speed"),
   upgradeHud: document.querySelector("#upgradeHud"), upgradeIcon: document.querySelector("#upgradeIcon"), upgradeName: document.querySelector("#upgradeName"),
   countdown: document.querySelector("#countdown"), toast: document.querySelector("#toast"), startPanel: document.querySelector("#startPanel"),
-  finishPanel: document.querySelector("#finishPanel"), finishTitle: document.querySelector("#finishTitle"), finishStats: document.querySelector("#finishStats"), credits: document.querySelector("#credits"), upgradePanel: document.querySelector("#upgradePanel")
+  finishPanel: document.querySelector("#finishPanel"), finishTitle: document.querySelector("#finishTitle"), finishStats: document.querySelector("#finishStats"), credits: document.querySelector("#credits"), upgradePanel: document.querySelector("#upgradePanel"), difficulty: document.querySelector("#difficulty")
 };
 
 const TRACK = {
@@ -27,6 +27,7 @@ const LAPS = 2;
 const keys = new Set();
 const colors = ["#ffce3a", "#e85d38", "#50c6d7", "#d970e8"];
 const names = ["YOU", "RIVET", "BYTE", "MAYHEM"];
+const difficultyPaces = { easy: .82, normal: 1, hard: 1.15 };
 const upgrades = [
   { name: "ROCKET SNEEZE", icon: "➤", color: "#ff5c45", help: "A violent three-second boost", use(car) { car.boost = 3; } },
   { name: "JUNK MAGNET", icon: "⊕", color: "#54d6dd", help: "Pull nearby crates toward you", use(car) { car.magnet = 7; } },
@@ -59,18 +60,31 @@ function trackTangent(t) {
   return Math.atan2(ahead.y - behind.y, ahead.x - behind.x);
 }
 
-const SHORTCUTS = [.27, .55, .78].map((from, i) => ({ start: pointOnTrack(from), end: pointOnTrack(from + [.055, .07, .085][i]) }));
+const SHORTCUTS = [.27, .55, .78].map((from, i) => ({ start: pointOnTrack(from), end: pointOnTrack(from + [.055, .07, .085][i]), width: 96 }));
+const LANDMARKS = [
+  { t: .13, label: "CRANE YARD", color: "#e85d38" },
+  { t: .43, label: "TIRE MOUNTAIN", color: "#50c6d7" },
+  { t: .69, label: "PRESSED CARS", color: "#d970e8" },
+  { t: .92, label: "REPAIR BAY", color: "#ffce3a" }
+];
+const TRACK_OBJECTS = [
+  { t: .37, type: "oil", label: "OIL SLICK" },
+  { t: .62, type: "oil", label: "OIL SLICK" },
+  { t: .91, type: "repair", label: "REPAIR BAY" },
+  { t: .48, type: "ramp", label: "JUNK RAMP" }
+].map(object => ({ ...object, ...pointOnTrack(object.t, object.type === "repair" ? -20 : 0), cooldown: 0 }));
 
 function makeCar(i) {
   const t = .205 + i * .012;
   const p = pointOnTrack(t, (i % 2) * 24 - 12);
-  return { i, name: names[i], color: colors[i], x: p.x, y: p.y, angle: trackTangent(t) + Math.PI, speed: 0, t, progress: 1 - t, lap: 0, distanceTravelled: 0, lane: (i % 2) * 24 - 12, upgrade: null, boost: 0, magnet: 0, phase: 0, banana: 0, spin: 0, finished: false, nextDrop: 0 };
+  return { i, name: names[i], color: colors[i], x: p.x, y: p.y, angle: trackTangent(t) + Math.PI, speed: 0, t, progress: 1 - t, lap: 0, distanceTravelled: 0, lane: (i % 2) * 24 - 12, upgrade: null, boost: 0, magnet: 0, phase: 0, banana: 0, spin: 0, hazardCooldown: 0, finished: false, nextDrop: 0, onShortcut: false };
 }
 
 function reset() {
   cars = names.map((_, i) => makeCar(i));
   crates = Array.from({ length: 12 }, (_, i) => ({ ...pointOnTrack(i / 12, i % 2 ? 18 : -18), active: true, respawn: 0, spin: i }));
   bananas = []; particles = []; finished = []; elapsed = 0; countdown = 1.6; nextOffer = 8; state = "countdown";
+  TRACK_OBJECTS.forEach(object => { object.cooldown = 0; });
   camera.x = cars[0].x; camera.y = cars[0].y;
   ui.finishPanel.classList.add("hidden"); ui.upgradePanel.classList.add("hidden"); ui.startPanel.classList.add("hidden");
 }
@@ -99,7 +113,7 @@ function updateBot(car, dt) {
   const target = pointOnTrack(targetT, car.lane);
   const desired = Math.atan2(target.y - car.y, target.x - car.x);
   car.angle += normalizeAngle(desired - car.angle) * dt * 4;
-  const pace = 360 + car.i * 8 + Math.sin(elapsed * .6 + car.i) * 18 + (car.boost > 0 ? 160 : 0);
+  const pace = (360 + car.i * 8 + Math.sin(elapsed * .6 + car.i) * 18 + (car.boost > 0 ? 160 : 0)) * difficultyPaces[ui.difficulty.value];
   car.speed += (pace - car.speed) * dt * 2.2;
   car.x += Math.cos(car.angle) * car.speed * dt;
   car.y += Math.sin(car.angle) * car.speed * dt;
@@ -120,12 +134,32 @@ function nearestTrackPoint(x, y) {
   return nearest;
 }
 
+function checkLandmark(car) {
+  LANDMARKS.forEach(landmark => {
+    const distance = Math.hypot(car.x - landmark.pos.x, car.y - landmark.pos.y);
+    if (distance < 120 && !landmark.seen) { landmark.seen = true; if (car.i === 0) toast(landmark.label); }
+  });
+}
+
+function checkHazard(car, dt) {
+  if (car.hazardCooldown > 0) return;
+  TRACK_OBJECTS.forEach(object => {
+    const distance = Math.hypot(car.x - object.x, car.y - object.y);
+    if (distance < 48) {
+      if (object.type === "oil" && car.phase <= 0) { car.speed *= .65; car.hazardCooldown = 2; if (car.i === 0) { toast("HIT " + object.label); burst(car.x, car.y, "#444a50", 12); } }
+      if (object.type === "ramp") { car.speed += 180; car.hazardCooldown = 1.5; if (car.i === 0) toast("RAMP BOOST"); }
+      if (object.type === "repair" && car.i === 0) { credits += 50; car.hazardCooldown = 3; toast("REPAIR BAY +50"); refreshCredits(); }
+    }
+  });
+}
+
 function updateProgress(car) {
   const nearest = nearestTrackPoint(car.x, car.y);
   const previous = car.t;
   const t = nearest.t;
-  if (previous < .25 && t > .75 && car.speed > 0 && car.distanceTravelled > TRACK_LENGTH * .75) car.lap++;
+  if (previous < .25 && t > .75 && car.speed > 0 && car.distanceTravelled > TRACK_LENGTH * .75) { car.lap++; if (car.i === 0) toast("LAP " + car.lap + " COMPLETE"); }
   car.t = t; car.progress = 1 - t;
+  checkLandmark(car);
   if (car.lap >= LAPS && !car.finished) finishCar(car);
 }
 
@@ -156,6 +190,11 @@ function keepOnTrack(car) {
   car.speed *= .88;
 }
 
+function updateHazards(dt) {
+  TRACK_OBJECTS.forEach(o => { o.cooldown = Math.max(0, o.cooldown - dt); });
+  cars.forEach(car => { car.hazardCooldown = Math.max(0, car.hazardCooldown - dt); });
+}
+
 function useUpgrade(car) {
   if (!car || !car.upgrade || state !== "racing") return;
   const up = car.upgrade; car.upgrade = null; up.use(car);
@@ -182,6 +221,7 @@ function update(dt) {
   particles.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt; });
   particles = particles.filter(p => p.life > 0);
   crates.forEach(c => { c.spin += dt * 2.8; if (!c.active && (c.respawn -= dt) <= 0) c.active = true; });
+  updateHazards(dt);
   if (state === "countdown") {
     countdown -= dt; ui.countdown.textContent = countdown > 1 ? Math.ceil(countdown) : countdown > 0 ? "GO!" : "";
     if (countdown <= -.35) state = "racing";
@@ -194,6 +234,7 @@ function update(dt) {
     if (car.finished) return;
     if (i === 0) updatePlayer(car, dt); else updateBot(car, dt);
     ["boost", "magnet", "phase", "banana"].forEach(k => car[k] = Math.max(0, car[k] - dt));
+    checkHazard(car, dt);
     if (car.banana > 0 && elapsed > car.nextDrop) { bananas.push({ x: car.x, y: car.y, life: 10, owner: car.i }); car.nextDrop = elapsed + .32; }
     keepOnTrack(car);
     car.distanceTravelled += Math.max(0, car.speed) * dt;
@@ -248,6 +289,8 @@ function drawTrack() {
   ctx.strokeStyle="#e8e2d4"; ctx.lineWidth=7; ctx.beginPath(); ctx.moveTo(start.x - 45, start.y - 45); ctx.lineTo(finish.x + 45, finish.y + 45); ctx.stroke();
   ctx.fillStyle="#e85d38"; for(let i=0;i<28;i++){ const p=pointOnTrack(i/28, TRACK.width/2+18); ctx.save();ctx.translate(p.x,p.y);ctx.rotate(trackTangent(i/28));ctx.fillRect(-8,-8,16,16);ctx.restore(); }
   SHORTCUTS.forEach(shortcut => { ctx.lineCap="round"; ctx.strokeStyle="#15191d"; ctx.lineWidth=TRACK.width+22; ctx.beginPath(); ctx.moveTo(shortcut.start.x,shortcut.start.y); ctx.lineTo(shortcut.end.x,shortcut.end.y); ctx.stroke(); ctx.strokeStyle="#59636a"; ctx.lineWidth=TRACK.width; ctx.stroke(); ctx.setLineDash([18,20]); ctx.strokeStyle="#8c9496"; ctx.lineWidth=3; ctx.stroke(); ctx.setLineDash([]); });
+  LANDMARKS.forEach(landmark => { ctx.fillStyle = landmark.color + "44"; ctx.beginPath(); ctx.arc(landmark.pos.x, landmark.pos.y, 90, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = landmark.color; ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = landmark.color; ctx.font = "700 9px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(landmark.label, landmark.pos.x, landmark.pos.y); });
+  TRACK_OBJECTS.forEach(object => { const icon = object.type === "oil" ? "☷" : object.type === "ramp" ? "▲" : "⚙"; ctx.fillStyle = object.type === "oil" ? "#444a50" : object.type === "ramp" ? "#e85d38" : "#ffce3a"; ctx.beginPath(); ctx.arc(object.x, object.y, 18, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = "#101319"; ctx.font = "900 16px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(icon, object.x, object.y); });
 }
 
 function drawCrate(c){ if(!c.active)return; ctx.save();ctx.translate(c.x,c.y);ctx.rotate(c.spin);ctx.fillStyle="#ffce3a";ctx.fillRect(-14,-14,28,28);ctx.strokeStyle="#12161a";ctx.lineWidth=4;ctx.strokeRect(-14,-14,28,28);ctx.fillStyle="#12161a";ctx.font="900 18px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText("?",0,1);ctx.restore(); }
@@ -267,6 +310,7 @@ function draw() {
 }
 
 function loop(now){ const dt=Math.min(.033,(now-last)/1000||0);last=now;update(dt);draw();requestAnimationFrame(loop); }
+LANDMARKS.forEach(landmark => { landmark.pos = pointOnTrack(landmark.t); landmark.seen = false; });
 document.querySelector("#startButton").addEventListener("click",reset); document.querySelector("#restartButton").addEventListener("click",reset);
 document.querySelectorAll(".upgrade-choice").forEach(button => button.addEventListener("click", () => chooseUpgrade(Number(button.dataset.upgrade))));
 document.addEventListener("keydown",e=>{keys.add(e.code);if(e.code==="Space"){e.preventDefault();useUpgrade(cars[0]);}}); document.addEventListener("keyup",e=>keys.delete(e.code));

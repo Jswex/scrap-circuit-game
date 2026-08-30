@@ -44,6 +44,9 @@ h1 span { color: #ffce3a; }
 .controls span { display: grid; gap: 6px; }
 .controls small { color: #9ca6b3; font-size: 9px; font-weight: 800; }
 .instruction-list { display: grid; gap: 5px; max-width: 430px; margin: 0 0 22px; padding-left: 18px; color: #c5cbd2; font-size: 12px; text-align: left; }
+.difficulty-control { display: flex; align-items: center; gap: 11px; margin: 0 0 16px; font-size: 11px; font-weight: 900; color: #9ca6b3; }
+.difficulty-control select { padding: 6px 9px; background: #20262d; color: #f4f1e8; border: 1px solid #697482; font-size: 11px; font-weight: 900; cursor: pointer; }
+.difficulty-control select:hover { border-color: #ffce3a; }
 .primary-button { border: 0; padding: 14px 28px; background: #ffce3a; color: #101319; font-weight: 950; cursor: pointer; box-shadow: 5px 5px 0 #e85d38; }
 .primary-button:hover { transform: translateY(-2px); }
 .finish-panel h2 { margin: 0; font-size: clamp(34px, 6vw, 72px); }
@@ -69,6 +72,7 @@ h1 span { color: #ffce3a; }
   .upgrade-hud { bottom: 84px; min-width: 250px; }
   .upgrade-choices { grid-template-columns: 1fr; width: min(300px, 100%); }
   .upgrade-panel { overflow-y: auto; }
+  .difficulty-control { flex-direction: column; gap: 6px; }
   .mobile-controls { position: absolute; inset: auto 12px 14px; display: flex; justify-content: space-between; pointer-events: none; }
   .mobile-controls button { pointer-events: auto; width: 56px; height: 56px; border: 1px solid #67717c; background: rgba(16,19,24,.8); color: white; font-size: 24px; }
   .mobile-controls .use-button { margin-left: auto; background: #ffce3a; color: #111; }
