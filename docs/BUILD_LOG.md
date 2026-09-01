@@ -2,6 +2,28 @@
 
 This is the chronological record of the project. New work should be added at the top of the log under a dated heading.
 
+## 2026-09-01 - Explicit GitHub Pages Branch
+
+### What changed
+
+- Diagnosed that the repository is public, but the GitHub Pages configuration endpoint returned `404`.
+- Published the same static site files to a dedicated `gh-pages` branch.
+
+### Why
+
+Some devices were seeing GitHub's "There isn't a GitHub Pages site here" message. A dedicated `gh-pages` branch gives GitHub Pages a conventional publishing source for the project site instead of depending on ambiguous repository settings.
+
+### Verification
+
+- Public repository API reported `private: false` and `visibility: public`.
+- Public repository page returned HTTP 200 without authentication.
+- Public game URL returned HTTP 200 and contained the `Scrap Circuit` HTML.
+
+### Known limitations
+
+- GitHub Pages can take a few minutes to rebuild after a branch is pushed.
+- The exact public URL is case-sensitive: `https://jswex.github.io/scrap-circuit-game/`.
+
 ## 2026-09-01 - Public Pages Access Fix
 
 ### What changed
