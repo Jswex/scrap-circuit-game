@@ -16,9 +16,9 @@ const upgradeHint = document.querySelector("#upgradeHud small");
 
 const keys = new Set();
 const WORLD = { width: 3200, height: 2350 };
-const TRACK_WIDTH = 174;
+const TRACK_WIDTH = 188;
 const ROAD_EDGE = 214;
-const LAPS_TO_WIN = 3;
+const LAPS_TO_WIN = 2;
 const BEST_TIME_KEY = "scrap-circuit-best-time";
 
 const controlPoints = [
@@ -213,8 +213,8 @@ function createCar(name, color, lane, index, controlled = false) {
     y: pos.y - Math.sin(angle) * index * 48,
     angle,
     speed: 0,
-    maxSpeed: controlled ? 356 : 322 + index * 8,
-    acceleration: controlled ? 245 : 198,
+    maxSpeed: controlled ? 470 : 420 + index * 12,
+    acceleration: controlled ? 390 : 310,
     handling: controlled ? 3.4 : 2.45,
     lane,
     node: 0,
@@ -262,7 +262,7 @@ function activateUpgrade(car) {
   burst(car.x, car.y, upgrade.color, 34, 220);
   callouts.push({ x: car.x, y: car.y - 48, text: upgrade.name, color: upgrade.color, life: 1.2 });
   if (upgrade.id === "rocket") {
-    car.speed += 430;
+    car.speed += 560;
     car.angle += (seededNoise(performance.now()) - 0.5) * 0.2;
     camera.x -= Math.cos(car.angle) * 52;
     camera.y -= Math.sin(car.angle) * 52;
@@ -307,10 +307,10 @@ function updatePlayer(dt) {
   const right = keys.has("arrowright") || keys.has("d");
 
   if (accelerating) player.speed += player.acceleration * dt;
-  if (braking) player.speed -= player.acceleration * 0.78 * dt;
-  if (!accelerating && !braking) player.speed *= 1 - 0.7 * dt;
+  if (braking) player.speed -= player.acceleration * 0.65 * dt;
+  if (!accelerating && !braking) player.speed *= 1 - 0.45 * dt;
 
-  const steerPower = Math.min(1, Math.abs(player.speed) / 165);
+  const steerPower = Math.min(1, Math.abs(player.speed) / 190);
   if (left) player.angle -= player.handling * steerPower * dt;
   if (right) player.angle += player.handling * steerPower * dt;
 }
@@ -325,8 +325,8 @@ function updateBot(car, dt) {
   car.angle += Math.max(-car.handling * dt, Math.min(car.handling * dt, diff));
 
   const offRoad = nearestTrackDistance(car.x, car.y) > TRACK_WIDTH / 2;
-  const goalSpeed = offRoad ? car.maxSpeed * 0.64 : car.maxSpeed;
-  car.speed += (goalSpeed - car.speed) * Math.min(1, dt * 1.9);
+  const goalSpeed = offRoad ? car.maxSpeed * 0.72 : car.maxSpeed;
+  car.speed += (goalSpeed - car.speed) * Math.min(1, dt * 2.35);
   if (car.upgradeReady && Math.abs(diff) < 0.35) activateUpgrade(car);
 }
 
@@ -357,8 +357,8 @@ function updateProgress(car) {
 function applySurface(car, dt) {
   const offRoad = nearestTrackDistance(car.x, car.y) > TRACK_WIDTH / 2;
   const phase = car.activeUpgrade?.id === "phase";
-  if (offRoad && !phase) car.speed *= 1 - 1.65 * dt;
-  if (offRoad && phase) car.speed += 145 * dt;
+  if (offRoad && !phase) car.speed *= 1 - 0.92 * dt;
+  if (offRoad && phase) car.speed += 210 * dt;
 }
 
 function updateCar(car, dt) {
@@ -377,7 +377,7 @@ function updateCar(car, dt) {
     if (car.upgradeTimer <= 0) car.activeUpgrade = null;
   }
 
-  const maxBoost = car.activeUpgrade?.id === "rocket" ? 1.48 : car.activeUpgrade?.id === "phase" ? 1.12 : 1;
+  const maxBoost = car.activeUpgrade?.id === "rocket" ? 1.58 : car.activeUpgrade?.id === "phase" ? 1.18 : 1;
   car.speed = Math.max(-95, Math.min(car.maxSpeed * maxBoost, car.speed));
   car.x += Math.cos(car.angle) * car.speed * dt;
   car.y += Math.sin(car.angle) * car.speed * dt;
@@ -411,7 +411,7 @@ function useBoostPads(car, dt) {
   for (const pad of boostPads) {
     if (pad.cooldown > 0 || car.finished) continue;
     if (Math.hypot(car.x - pad.x, car.y - pad.y) < 52) {
-      car.speed += car.controlled ? 380 : 265;
+      car.speed += car.controlled ? 520 : 360;
       pad.cooldown = 1.9;
       burst(pad.x, pad.y, "#ff7a2f", 26, 210);
       if (car.controlled) callouts.push({ x: pad.x, y: pad.y - 42, text: "SPEED PAD", color: "#ff7a2f", life: 0.85 });

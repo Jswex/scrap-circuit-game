@@ -2,6 +2,36 @@
 
 Use this for the real unfamiliar-user test required by the game rubric. Let the player try silently first. Do not explain the controls unless they are fully stuck; write down what happened before helping.
 
+## Test Note - Race Pacing
+
+- Date: 2026-09-01
+- Tester relationship to you: Follow-up observation reported by project owner
+- Device/browser: Not recorded
+- Play URL or local build: Scrap Circuit public build before `PLAYTEST BUILD 08`
+- Was the tester signed out of GitHub? Not recorded
+- Was this tested on a second device? Not recorded
+- Duration: Not recorded
+
+### Most Consequential Friction
+
+- Biggest confusion or slowdown: The car moved too slowly and the full race length did not stay engaging.
+- Why it matters for the game: If the race takes too long to feel exciting, players may understand the mechanics but lose interest before finishing.
+- Evidence from the test: Project owner reported that "the game speed moves to slow" and "dosent keep you drawn enough for the whole length."
+
+### Revision Made
+
+- Change made after the test: Reduced the race to two laps, increased player/bot acceleration and top speed, strengthened speed pads and boost effects, widened the road slightly, and reduced off-road slowdown.
+- File(s) changed: `src/game.js`, `index.html`
+- Why this change targets the friction: The car reaches exciting speeds sooner and the complete race loop finishes faster, so the player gets more action in less time.
+
+### Verification Attempt
+
+- Date: Pending
+- Tester: Pending
+- Did the original friction improve? Pending
+- What new issue appeared, if any? Pending
+- Evidence: Needs a race replay after `PLAYTEST BUILD 08` is live.
+
 ## Test Note - Magnet And Track Variety
 
 - Date: 2026-09-01

@@ -2,6 +2,30 @@
 
 This is the chronological record of the project. New work should be added at the top of the log under a dated heading.
 
+## 2026-09-01 - Faster Race Pacing
+
+### What changed
+
+- Reduced the race from three laps to two laps on the large winding course.
+- Increased player top speed from `356` to `470`.
+- Increased player acceleration from `245` to `390`.
+- Increased bot top speed and acceleration so opponents keep pressure on the player.
+- Increased Rocket Sneeze, Phase Drive, and speed-pad speed payoff.
+- Reduced normal off-road slowdown and widened the driveable track slightly.
+- Updated the build label to `PLAYTEST BUILD 08`.
+
+### Why
+
+A playtest note said the game speed felt too slow and did not keep the player drawn in for the whole race length. The fix makes the car reach fun speeds sooner, makes speed pads more exciting, and shortens the full run so the game loop lands before it gets stale.
+
+### Verification
+
+- Inspected all pace-related constants and the visible lap-count copy after editing.
+
+### Known limitations
+
+- A live race should confirm the faster car is still controllable and that two laps feels complete rather than abrupt.
+
 ## 2026-09-01 - Best Time Tracking
 
 ### What changed
