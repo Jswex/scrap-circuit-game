@@ -10,6 +10,7 @@ const finalStats = document.getElementById("finishStats");
 const lapDisplay = document.getElementById("lap");
 const positionDisplay = document.getElementById("position");
 const speedDisplay = document.getElementById("speed");
+const bestTimeDisplay = document.getElementById("bestTime");
 const upgradeName = document.getElementById("upgradeName");
 const upgradeHint = document.querySelector("#upgradeHud small");
 
@@ -18,6 +19,7 @@ const WORLD = { width: 3200, height: 2350 };
 const TRACK_WIDTH = 174;
 const ROAD_EDGE = 214;
 const LAPS_TO_WIN = 3;
+const BEST_TIME_KEY = "scrap-circuit-best-time";
 
 const controlPoints = [
   { x: 1510, y: 1935 },
@@ -81,6 +83,19 @@ let startedAt = 0;
 let finishedAt = 0;
 let camera = { x: 0, y: 0 };
 let crateSeed = 0;
+
+function getBestTime() {
+  const saved = Number(window.localStorage.getItem(BEST_TIME_KEY));
+  return Number.isFinite(saved) && saved > 0 ? saved : null;
+}
+
+function saveBestTime(seconds) {
+  window.localStorage.setItem(BEST_TIME_KEY, String(seconds));
+}
+
+function formatTime(seconds) {
+  return seconds == null ? "--.-" : seconds.toFixed(1);
+}
 
 function resizeCanvas() {
   canvas.width = Math.floor(window.innerWidth * window.devicePixelRatio);
@@ -482,6 +497,7 @@ function updateHud() {
   const rank = standings().findIndex((car) => car === player) + 1;
   positionDisplay.innerHTML = `${rank}<sup>${rank === 1 ? "st" : rank === 2 ? "nd" : rank === 3 ? "rd" : "th"}</sup>`;
   speedDisplay.textContent = `${Math.round(Math.max(0, player.speed))}`;
+  bestTimeDisplay.textContent = formatTime(getBestTime());
   if (player.upgradeReady) {
     upgradeName.textContent = player.upgradeReady.name;
     upgradeName.style.color = player.upgradeReady.color;
@@ -503,9 +519,14 @@ function finishRace() {
   finishedAt = performance.now();
   const ordered = standings();
   const rank = ordered.findIndex((car) => car === player) + 1;
+  const raceTime = (finishedAt - startedAt) / 1000;
+  const previousBest = getBestTime();
+  const newBest = previousBest == null || raceTime < previousBest;
+  if (newBest) saveBestTime(raceTime);
   finalTitle.textContent = rank === 1 ? "You scrapped your way to first." : `Finished ${rank}${rank === 2 ? "nd" : rank === 3 ? "rd" : "th"}.`;
-  finalStats.textContent = `Time: ${((finishedAt - startedAt) / 1000).toFixed(1)}s. Upgrade crates collected: ${crates.filter((crate) => crate.taken).length}.`;
+  finalStats.textContent = `Time: ${formatTime(raceTime)}s. Best: ${formatTime(getBestTime())}s${newBest ? " NEW BEST" : ""}. Upgrade crates collected: ${crates.filter((crate) => crate.taken).length}.`;
   finalPanel.classList.remove("hidden");
+  updateHud();
 }
 
 function update(dt) {
@@ -827,6 +848,7 @@ buildScenery();
 buildBoostPads();
 spawnCrates();
 resizeCanvas();
+bestTimeDisplay.textContent = formatTime(getBestTime());
 camera = { ...track[0] };
 drawWorld();
 requestAnimationFrame(loop);

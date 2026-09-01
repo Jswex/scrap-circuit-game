@@ -2,6 +2,28 @@
 
 This is the chronological record of the project. New work should be added at the top of the log under a dated heading.
 
+## 2026-09-01 - Best Time Tracking
+
+### What changed
+
+- Added a saved best-time display to the HUD.
+- Stored the player's fastest completed race in browser `localStorage`.
+- Updated the finish screen to show race time, best time, and `NEW BEST` when the player sets a record.
+- Added start-screen copy explaining that players can finish fast to set a saved best time.
+- Updated the build label to `PLAYTEST BUILD 07`.
+
+### Why
+
+Best time gives the game a clearer replay goal after a player understands the basic race loop. It also strengthens the end-state feedback because the finish screen now tells the player whether the run improved their record.
+
+### Verification
+
+- Inspected the finish timing, best-time comparison, HUD update, and initial page-load display paths.
+
+### Known limitations
+
+- Best time is saved per browser/device, not globally across players.
+
 ## 2026-09-01 - Stronger Speed Pads
 
 ### What changed
