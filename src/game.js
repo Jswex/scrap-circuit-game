@@ -11,6 +11,8 @@ const lapDisplay = document.getElementById("lap");
 const positionDisplay = document.getElementById("position");
 const speedDisplay = document.getElementById("speed");
 const bestTimeDisplay = document.getElementById("bestTime");
+const chargeMeter = document.getElementById("chargeMeter");
+const comboMeter = document.getElementById("comboMeter");
 const upgradeName = document.getElementById("upgradeName");
 const upgradeHint = document.querySelector("#upgradeHud small");
 
@@ -83,6 +85,11 @@ let startedAt = 0;
 let finishedAt = 0;
 let camera = { x: 0, y: 0 };
 let crateSeed = 0;
+let scrapCharge = 0;
+let combo = 1;
+let bestCombo = 1;
+let comboTimer = 0;
+let spaceWasDown = false;
 
 function getBestTime() {
   const saved = Number(window.localStorage.getItem(BEST_TIME_KEY));
@@ -222,6 +229,7 @@ function createCar(name, color, lane, index, controlled = false) {
     controlled,
     activeUpgrade: null,
     upgradeTimer: 0,
+    chargeBoostTimer: 0,
     upgradeReady: null,
     cooldown: 0,
     aiWobble: index * 1.7,
@@ -246,10 +254,35 @@ function resetGame() {
   camera = { x: player.x, y: player.y };
   startedAt = performance.now();
   finishedAt = 0;
+  scrapCharge = 0;
+  combo = 1;
+  bestCombo = 1;
+  comboTimer = 0;
+  spaceWasDown = false;
   state = "running";
   finalPanel.classList.add("hidden");
   startScreen.classList.add("hidden");
   updateHud();
+}
+
+function addCharge(amount) {
+  scrapCharge = Math.max(0, Math.min(100, scrapCharge + amount * combo));
+}
+
+function addCombo(label, color, x = player.x, y = player.y - 55) {
+  combo = Math.min(8, combo + 1);
+  bestCombo = Math.max(bestCombo, combo);
+  comboTimer = 3.2;
+  callouts.push({ x, y, text: `${label} x${combo}`, color, life: 0.95 });
+}
+
+function useChargeBoost() {
+  if (scrapCharge < 35 || player.finished) return;
+  scrapCharge -= 35;
+  player.speed += 360;
+  player.chargeBoostTimer = 1.25;
+  burst(player.x, player.y, "#f4df63", 28, 210);
+  addCombo("CHARGE BOOST", "#f4df63");
 }
 
 function activateUpgrade(car) {
@@ -305,6 +338,7 @@ function updatePlayer(dt) {
   const braking = keys.has("arrowdown") || keys.has("s");
   const left = keys.has("arrowleft") || keys.has("a");
   const right = keys.has("arrowright") || keys.has("d");
+  const turning = left || right;
 
   if (accelerating) player.speed += player.acceleration * dt;
   if (braking) player.speed -= player.acceleration * 0.65 * dt;
@@ -313,6 +347,19 @@ function updatePlayer(dt) {
   const steerPower = Math.min(1, Math.abs(player.speed) / 190);
   if (left) player.angle -= player.handling * steerPower * dt;
   if (right) player.angle += player.handling * steerPower * dt;
+  if (turning && accelerating && player.speed > 225) {
+    addCharge(10 * dt);
+    if (seededNoise(performance.now()) > 0.91) {
+      sparks.push({
+        x: player.x - Math.cos(player.angle) * 26,
+        y: player.y - Math.sin(player.angle) * 26,
+        vx: (seededNoise(performance.now() + 11) - 0.5) * 90,
+        vy: (seededNoise(performance.now() + 23) - 0.5) * 90,
+        color: "#f4df63",
+        life: 0.35,
+      });
+    }
+  }
 }
 
 function updateBot(car, dt) {
@@ -376,8 +423,9 @@ function updateCar(car, dt) {
     car.upgradeTimer -= dt;
     if (car.upgradeTimer <= 0) car.activeUpgrade = null;
   }
+  car.chargeBoostTimer = Math.max(0, car.chargeBoostTimer - dt);
 
-  const maxBoost = car.activeUpgrade?.id === "rocket" ? 1.58 : car.activeUpgrade?.id === "phase" ? 1.18 : 1;
+  const maxBoost = car.activeUpgrade?.id === "rocket" ? 1.58 : car.activeUpgrade?.id === "phase" ? 1.18 : car.chargeBoostTimer > 0 ? 1.36 : 1;
   car.speed = Math.max(-95, Math.min(car.maxSpeed * maxBoost, car.speed));
   car.x += Math.cos(car.angle) * car.speed * dt;
   car.y += Math.sin(car.angle) * car.speed * dt;
@@ -402,7 +450,11 @@ function collectCrates(car, dt) {
       car.upgradeReady = crate.type;
       car.speed += 75;
       burst(crate.x, crate.y, crate.type.color, 20, 150);
-      if (car.controlled) callouts.push({ x: crate.x, y: crate.y - 38, text: "UPGRADE READY", color: crate.type.color, life: 0.9 });
+      if (car.controlled) {
+        addCharge(9);
+        addCombo("CRATE", crate.type.color, crate.x, crate.y - 38);
+        callouts.push({ x: crate.x, y: crate.y - 62, text: "UPGRADE READY", color: crate.type.color, life: 0.9 });
+      }
     }
   }
 }
@@ -414,7 +466,10 @@ function useBoostPads(car, dt) {
       car.speed += car.controlled ? 520 : 360;
       pad.cooldown = 1.9;
       burst(pad.x, pad.y, "#ff7a2f", 26, 210);
-      if (car.controlled) callouts.push({ x: pad.x, y: pad.y - 42, text: "SPEED PAD", color: "#ff7a2f", life: 0.85 });
+      if (car.controlled) {
+        addCharge(7);
+        addCombo("SPEED PAD", "#ff7a2f", pad.x, pad.y - 42);
+      }
     }
   }
 }
@@ -463,6 +518,8 @@ function updateHazards(dt) {
 }
 
 function updateEffects(dt) {
+  comboTimer = Math.max(0, comboTimer - dt);
+  if (comboTimer === 0) combo = 1;
   for (const spark of sparks) {
     spark.x += spark.vx * dt;
     spark.y += spark.vy * dt;
@@ -498,6 +555,8 @@ function updateHud() {
   positionDisplay.innerHTML = `${rank}<sup>${rank === 1 ? "st" : rank === 2 ? "nd" : rank === 3 ? "rd" : "th"}</sup>`;
   speedDisplay.textContent = `${Math.round(Math.max(0, player.speed))}`;
   bestTimeDisplay.textContent = formatTime(getBestTime());
+  chargeMeter.textContent = `${Math.round(scrapCharge)}%`;
+  comboMeter.textContent = `COMBO x${combo}`;
   if (player.upgradeReady) {
     upgradeName.textContent = player.upgradeReady.name;
     upgradeName.style.color = player.upgradeReady.color;
@@ -524,14 +583,19 @@ function finishRace() {
   const newBest = previousBest == null || raceTime < previousBest;
   if (newBest) saveBestTime(raceTime);
   finalTitle.textContent = rank === 1 ? "You scrapped your way to first." : `Finished ${rank}${rank === 2 ? "nd" : rank === 3 ? "rd" : "th"}.`;
-  finalStats.textContent = `Time: ${formatTime(raceTime)}s. Best: ${formatTime(getBestTime())}s${newBest ? " NEW BEST" : ""}. Upgrade crates collected: ${crates.filter((crate) => crate.taken).length}.`;
+  finalStats.textContent = `Time: ${formatTime(raceTime)}s. Best: ${formatTime(getBestTime())}s${newBest ? " NEW BEST" : ""}. Top combo: x${bestCombo}. Upgrade crates collected: ${crates.filter((crate) => crate.taken).length}.`;
   finalPanel.classList.remove("hidden");
   updateHud();
 }
 
 function update(dt) {
   if (state !== "running") return;
-  if (keys.has(" ")) activateUpgrade(player);
+  const spaceDown = keys.has(" ");
+  if (spaceDown && !spaceWasDown) {
+    if (player.upgradeReady) activateUpgrade(player);
+    else useChargeBoost();
+  }
+  spaceWasDown = spaceDown;
   updateEffects(dt);
   updateBoostPads(dt);
   for (const car of cars) {
@@ -617,6 +681,15 @@ function drawCar(car) {
     ctx.stroke();
     ctx.beginPath();
     ctx.arc(0, 0, 64, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  if (car.chargeBoostTimer > 0) {
+    ctx.strokeStyle = "#f4df63";
+    ctx.lineWidth = 4;
+    ctx.globalAlpha = 0.45 + Math.sin(performance.now() / 65) * 0.18;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 50, 32, 0, 0, Math.PI * 2);
     ctx.stroke();
     ctx.globalAlpha = 1;
   }

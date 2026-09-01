@@ -2,6 +2,30 @@
 
 This is the chronological record of the project. New work should be added at the top of the log under a dated heading.
 
+## 2026-09-01 - Charge And Combo Fun Pass
+
+### What changed
+
+- Added a `CHARGE` HUD meter and `COMBO` counter.
+- Added drift charge: turning while accelerating at high speed builds scrap charge.
+- Added combo rewards for chaining crates, speed pads, and charge boosts.
+- Added a manual charge boost: if no crate upgrade is held, pressing SPACE spends charge for a short nitro-style boost.
+- Added a yellow visual ring and spark burst for charge boosts.
+- Updated the finish screen to show the best combo reached during the run.
+- Updated the build label to `PLAYTEST BUILD 09`.
+
+### Why
+
+The game needed more active fun between major powerup moments. Charge and combo systems give players a reason to drive aggressively, drift through turns, chase speed pads, and replay for better runs instead of only waiting for the next crate.
+
+### Verification
+
+- Inspected the charge gain, combo decay, manual boost, HUD, and finish-screen paths.
+
+### Known limitations
+
+- A playtest should confirm players understand that SPACE becomes a charge boost when no crate upgrade is held.
+
 ## 2026-09-01 - Faster Race Pacing
 
 ### What changed

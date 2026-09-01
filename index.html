@@ -12,7 +12,7 @@
     <header class="topbar">
       <div class="brand"><span>SCRAP</span> CIRCUIT</div>
       <div class="race-label">Wrecker's Pass <strong>2 laps counterclockwise</strong></div>
-      <span class="build-tag">PLAYTEST BUILD 08</span>
+      <span class="build-tag">PLAYTEST BUILD 09</span>
     </header>
 
     <section class="arena" aria-label="Racing game">
@@ -36,6 +36,12 @@
         <span>SECONDS</span>
       </aside>
 
+      <aside class="hud hud-charge">
+        <span class="hud-label">CHARGE</span>
+        <strong id="chargeMeter">0%</strong>
+        <span id="comboMeter">COMBO x1</span>
+      </aside>
+
       <div id="upgradeHud" class="upgrade-hud empty">
         <span id="upgradeIcon">?</span>
         <div><small>HELD UPGRADE</small><strong id="upgradeName">Drive through a crate</strong></div>
@@ -54,7 +60,9 @@
           <li>Follow the road arrows counterclockwise.</li>
           <li>Hit orange speed pads for instant boosts.</li>
           <li>Collect glowing crates for creative upgrades.</li>
+          <li>Drift through turns to build scrap charge.</li>
           <li>Use upgrades before another crate replaces them.</li>
+          <li>If no upgrade is held, SPACE spends charge for a boost.</li>
           <li>Finish fast to set a saved best time.</li>
           <li>Going wide slows you down, so clean turns matter.</li>
         </ul>

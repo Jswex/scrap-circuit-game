@@ -2,6 +2,36 @@
 
 Use this for the real unfamiliar-user test required by the game rubric. Let the player try silently first. Do not explain the controls unless they are fully stuck; write down what happened before helping.
 
+## Test Note - Moment-To-Moment Fun
+
+- Date: 2026-09-01
+- Tester relationship to you: Design improvement requested by project owner
+- Device/browser: Not recorded
+- Play URL or local build: Scrap Circuit public build before `PLAYTEST BUILD 09`
+- Was the tester signed out of GitHub? Not recorded
+- Was this tested on a second device? Not recorded
+- Duration: Not recorded
+
+### Most Consequential Friction
+
+- Biggest confusion or slowdown: The game needed more fun and more reasons to stay engaged during the full race.
+- Why it matters for the game: Once the player understands steering and crates, the race needs an extra mastery loop so repeated driving feels rewarding rather than passive.
+- Evidence from the test: Project owner asked to improve the game to make it "a lot more fun."
+
+### Revision Made
+
+- Change made after the test: Added scrap charge, drift charge gain, combo chaining, manual charge boost, charge HUD, combo HUD, boost visuals, and top-combo finish feedback.
+- File(s) changed: `src/game.js`, `index.html`, `src/styles.css`
+- Why this change targets the friction: Players now have more frequent short-term goals: drift to build charge, chain pads/crates for combos, and spend charge when no upgrade is held.
+
+### Verification Attempt
+
+- Date: Pending
+- Tester: Pending
+- Did the original friction improve? Pending
+- What new issue appeared, if any? Pending
+- Evidence: Needs a race replay after `PLAYTEST BUILD 09` is live.
+
 ## Test Note - Race Pacing
 
 - Date: 2026-09-01

@@ -22,6 +22,7 @@ canvas { display: block; width: 100%; height: 100%; }
 .hud-left { left: 18px; }
 .hud-right { right: 18px; text-align: right; }
 .hud-best { left: 50%; top: 18px; min-width: 150px; transform: translateX(-50%); text-align: center; }
+.hud-charge { left: 50%; top: 112px; min-width: 150px; transform: translateX(-50%); text-align: center; border-top-color: #49d5ff; }
 .hud-label, .hud span { display: block; color: #9ca6b3; font-size: 10px; font-weight: 800; }
 .hud strong { font-size: 32px; line-height: 1; }
 .hud sup { font-size: 12px; }
@@ -54,6 +55,7 @@ h1 span { color: #ffce3a; }
   .hud { top: 10px; min-width: 92px; padding: 7px 9px; }
   .hud-left { left: 10px; } .hud-right { right: 10px; }
   .hud-best { top: 84px; min-width: 112px; }
+  .hud-charge { top: 148px; min-width: 112px; }
   .hud strong { font-size: 24px; }
   .upgrade-hud { bottom: 84px; min-width: 250px; }
   .mobile-controls { position: absolute; inset: auto 12px 14px; display: flex; justify-content: space-between; pointer-events: none; }
