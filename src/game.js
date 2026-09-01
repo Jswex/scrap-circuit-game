@@ -41,28 +41,28 @@ const upgrades = [
     name: "Rocket Sneeze",
     color: "#ffcb45",
     hint: "SPACE launches a crooked burst of speed.",
-    duration: 1.1,
+    duration: 1.7,
   },
   {
     id: "magnet",
     name: "Junk Magnet",
     color: "#49d5ff",
     hint: "SPACE pulls nearby boost crates into your car.",
-    duration: 4.5,
+    duration: 6.2,
   },
   {
     id: "phase",
     name: "Phase Drive",
     color: "#b56cff",
     hint: "SPACE lets you ignore grass slowdown for a moment.",
-    duration: 3.2,
+    duration: 5.3,
   },
   {
     id: "banana",
     name: "Banana Printer",
     color: "#7cff6b",
     hint: "SPACE drops slippery scrap behind you.",
-    duration: 0.4,
+    duration: 0.8,
   },
 ];
 
@@ -70,6 +70,8 @@ let track = [];
 let scenery = [];
 let crates = [];
 let hazards = [];
+let sparks = [];
+let callouts = [];
 let cars = [];
 let player;
 let state = "menu";
@@ -197,6 +199,8 @@ function createCar(name, color, lane, index, controlled = false) {
 
 function resetGame() {
   hazards = [];
+  sparks = [];
+  callouts = [];
   spawnCrates();
   cars = [
     createCar("You", "#ff5151", -35, 0, true),
@@ -221,15 +225,43 @@ function activateUpgrade(car) {
   car.upgradeTimer = upgrade.duration;
   car.cooldown = 0.35;
   car.upgradeReady = null;
+  burst(car.x, car.y, upgrade.color, 34, 220);
+  callouts.push({ x: car.x, y: car.y - 48, text: upgrade.name, color: upgrade.color, life: 1.2 });
   if (upgrade.id === "rocket") {
-    car.speed += 270;
-    car.angle += (seededNoise(performance.now()) - 0.5) * 0.35;
+    car.speed += 430;
+    car.angle += (seededNoise(performance.now()) - 0.5) * 0.2;
+    camera.x -= Math.cos(car.angle) * 52;
+    camera.y -= Math.sin(car.angle) * 52;
+  }
+  if (upgrade.id === "phase") {
+    car.speed += 110;
+  }
+  if (upgrade.id === "magnet") {
+    car.speed += 80;
   }
   if (upgrade.id === "banana") {
-    hazards.push({
-      x: car.x - Math.cos(car.angle) * 42,
-      y: car.y - Math.sin(car.angle) * 42,
-      life: 9,
+    for (let i = 1; i <= 3; i += 1) {
+      hazards.push({
+        x: car.x - Math.cos(car.angle) * (38 + i * 32),
+        y: car.y - Math.sin(car.angle) * (38 + i * 32),
+        radius: 38 + i * 4,
+        life: 11,
+      });
+    }
+  }
+}
+
+function burst(x, y, color, count, force = 120) {
+  for (let i = 0; i < count; i += 1) {
+    const angle = seededNoise(performance.now() + i * 13) * Math.PI * 2;
+    const speed = force * (0.3 + seededNoise(performance.now() + i * 31));
+    sparks.push({
+      x,
+      y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      color,
+      life: 0.45 + seededNoise(i + force) * 0.5,
     });
   }
 }
@@ -292,7 +324,7 @@ function applySurface(car, dt) {
   const offRoad = nearestTrackDistance(car.x, car.y) > TRACK_WIDTH / 2;
   const phase = car.activeUpgrade?.id === "phase";
   if (offRoad && !phase) car.speed *= 1 - 1.65 * dt;
-  if (offRoad && phase) car.speed += 35 * dt;
+  if (offRoad && phase) car.speed += 145 * dt;
 }
 
 function updateCar(car, dt) {
@@ -311,7 +343,7 @@ function updateCar(car, dt) {
     if (car.upgradeTimer <= 0) car.activeUpgrade = null;
   }
 
-  const maxBoost = car.activeUpgrade?.id === "rocket" ? 1.22 : 1;
+  const maxBoost = car.activeUpgrade?.id === "rocket" ? 1.48 : car.activeUpgrade?.id === "phase" ? 1.12 : 1;
   car.speed = Math.max(-95, Math.min(car.maxSpeed * maxBoost, car.speed));
   car.x += Math.cos(car.angle) * car.speed * dt;
   car.y += Math.sin(car.angle) * car.speed * dt;
@@ -327,14 +359,16 @@ function collectCrates(car, dt) {
     const dx = crate.x - car.x;
     const dy = crate.y - car.y;
     const distance = Math.hypot(dx, dy);
-    if (magnet && distance < 190) {
-      crate.x -= dx * Math.min(1, dt * 4.6);
-      crate.y -= dy * Math.min(1, dt * 4.6);
+    if (magnet && distance < 330) {
+      crate.x -= dx * Math.min(1, dt * 8.5);
+      crate.y -= dy * Math.min(1, dt * 8.5);
     }
-    if (distance < 42) {
+    if (distance < 48) {
       crate.taken = true;
       car.upgradeReady = crate.type;
-      car.speed += 40;
+      car.speed += 75;
+      burst(crate.x, crate.y, crate.type.color, 20, 150);
+      if (car.controlled) callouts.push({ x: crate.x, y: crate.y - 38, text: "UPGRADE READY", color: crate.type.color, life: 0.9 });
     }
   }
 }
@@ -344,14 +378,32 @@ function updateHazards(dt) {
     hazard.life -= dt;
     for (const car of cars) {
       if (car.finished) continue;
-      if (Math.hypot(car.x - hazard.x, car.y - hazard.y) < 38) {
-        car.speed *= 0.35;
-        car.angle += 1.05;
+      if (Math.hypot(car.x - hazard.x, car.y - hazard.y) < (hazard.radius || 38)) {
+        car.speed *= 0.18;
+        car.angle += 1.55;
         hazard.life = 0;
+        burst(hazard.x, hazard.y, "#f4df63", 24, 170);
       }
     }
   }
   hazards = hazards.filter((hazard) => hazard.life > 0);
+}
+
+function updateEffects(dt) {
+  for (const spark of sparks) {
+    spark.x += spark.vx * dt;
+    spark.y += spark.vy * dt;
+    spark.vx *= 1 - 2.4 * dt;
+    spark.vy *= 1 - 2.4 * dt;
+    spark.life -= dt;
+  }
+  sparks = sparks.filter((spark) => spark.life > 0);
+
+  for (const callout of callouts) {
+    callout.y -= 32 * dt;
+    callout.life -= dt;
+  }
+  callouts = callouts.filter((callout) => callout.life > 0);
 }
 
 function raceScore(car) {
@@ -401,6 +453,7 @@ function finishRace() {
 function update(dt) {
   if (state !== "running") return;
   if (keys.has(" ")) activateUpgrade(player);
+  updateEffects(dt);
   for (const car of cars) {
     updateCar(car, dt);
     collectCrates(car, dt);
@@ -464,6 +517,24 @@ function drawCar(car) {
   ctx.save();
   ctx.translate(car.x, car.y);
   ctx.rotate(car.angle);
+  if (car.activeUpgrade?.id === "phase") {
+    ctx.strokeStyle = "#b56cff";
+    ctx.lineWidth = 5;
+    ctx.globalAlpha = 0.65 + Math.sin(performance.now() / 80) * 0.25;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 42, 28, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  if (car.activeUpgrade?.id === "magnet") {
+    ctx.strokeStyle = "#49d5ff";
+    ctx.lineWidth = 3;
+    ctx.globalAlpha = 0.35 + Math.sin(performance.now() / 120) * 0.15;
+    ctx.beginPath();
+    ctx.arc(0, 0, 82, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
   ctx.fillStyle = "rgba(0, 0, 0, 0.22)";
   ctx.beginPath();
   ctx.ellipse(0, 13, 32, 15, 0, 0, Math.PI * 2);
@@ -487,9 +558,9 @@ function drawCar(car) {
     ctx.fillStyle = "#ff8b37";
     ctx.beginPath();
     ctx.moveTo(-30, 0);
-    ctx.lineTo(-54, -9);
-    ctx.lineTo(-48, 0);
-    ctx.lineTo(-54, 9);
+    ctx.lineTo(-82, -16);
+    ctx.lineTo(-60, 0);
+    ctx.lineTo(-82, 16);
     ctx.closePath();
     ctx.fill();
   }
@@ -499,6 +570,31 @@ function drawCar(car) {
   ctx.font = "600 12px Inter, sans-serif";
   ctx.textAlign = "center";
   ctx.fillText(car.name, car.x, car.y - 32);
+}
+
+function drawEffects() {
+  for (const spark of sparks) {
+    if (!visibleCircle(spark.x, spark.y, 30)) continue;
+    ctx.globalAlpha = Math.max(0, Math.min(1, spark.life * 2));
+    ctx.fillStyle = spark.color;
+    ctx.beginPath();
+    ctx.arc(spark.x, spark.y, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  ctx.font = "900 18px Inter, sans-serif";
+  ctx.textAlign = "center";
+  ctx.lineWidth = 4;
+  for (const callout of callouts) {
+    if (!visibleCircle(callout.x, callout.y, 120)) continue;
+    ctx.globalAlpha = Math.max(0, Math.min(1, callout.life));
+    ctx.strokeStyle = "#101319";
+    ctx.fillStyle = callout.color;
+    ctx.strokeText(callout.text, callout.x, callout.y);
+    ctx.fillText(callout.text, callout.x, callout.y);
+  }
+  ctx.globalAlpha = 1;
 }
 
 function roundRect(x, y, width, height, radius) {
@@ -558,6 +654,17 @@ function drawWorld() {
   for (const crate of crates) {
     if (crate.taken || !visibleCircle(crate.x, crate.y, 70)) continue;
     const lift = Math.sin(performance.now() / 250 + crate.bob) * 4;
+    if (player?.activeUpgrade?.id === "magnet" && Math.hypot(crate.x - player.x, crate.y - player.y) < 330) {
+      ctx.save();
+      ctx.strokeStyle = "rgba(73, 213, 255, 0.58)";
+      ctx.lineWidth = 3;
+      ctx.setLineDash([8, 8]);
+      ctx.beginPath();
+      ctx.moveTo(player.x, player.y);
+      ctx.lineTo(crate.x, crate.y);
+      ctx.stroke();
+      ctx.restore();
+    }
     ctx.save();
     ctx.translate(crate.x, crate.y + lift);
     ctx.rotate(Math.PI / 4);
@@ -571,12 +678,17 @@ function drawWorld() {
   ctx.fillStyle = "#f4df63";
   for (const hazard of hazards) {
     if (!visibleCircle(hazard.x, hazard.y, 50)) continue;
+    const radius = hazard.radius || 38;
     ctx.beginPath();
-    ctx.ellipse(hazard.x, hazard.y, 28, 14, 0.3, 0, Math.PI * 2);
+    ctx.ellipse(hazard.x, hazard.y, radius, radius * 0.46, 0.3, 0, Math.PI * 2);
     ctx.fill();
+    ctx.strokeStyle = "#16191d";
+    ctx.lineWidth = 4;
+    ctx.stroke();
   }
 
   for (const car of cars) drawCar(car);
+  drawEffects();
   ctx.restore();
 }
 

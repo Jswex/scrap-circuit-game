@@ -2,6 +2,31 @@
 
 This is the chronological record of the project. New work should be added at the top of the log under a dated heading.
 
+## 2026-09-01 - Powerup Readability Revision
+
+### What changed
+
+- Strengthened every powerup so the effect is more visible and easier to feel.
+- Increased Rocket Sneeze speed boost and flame size.
+- Increased Junk Magnet range and pull strength, with visible tethers to nearby crates.
+- Increased Phase Drive duration and off-road speed benefit, with a purple glow around the car.
+- Changed Banana Printer from one small hazard to a short trail of larger slippery puddles.
+- Added spark bursts and floating callout text when upgrades are collected or activated.
+- Updated the build label to `PLAYTEST BUILD 03`.
+
+### Why
+
+A user-test friction note said the powerups did not have a noticeable enough effect. Since upgrades are the main creative hook of the game, the revision makes the moment of collecting and using each upgrade more obvious both mechanically and visually.
+
+### Verification
+
+- Source was inspected after editing for dangling UI references.
+- Public sync is handled by pushing the commit to GitHub, which triggers the Pages deployment workflow.
+
+### Known limitations
+
+- A second user should replay the new build to confirm the stronger effects solve the original friction.
+
 ## 2026-09-01 - Explicit GitHub Pages Branch
 
 ### What changed

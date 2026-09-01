@@ -2,6 +2,36 @@
 
 Use this for the real unfamiliar-user test required by the game rubric. Let the player try silently first. Do not explain the controls unless they are fully stuck; write down what happened before helping.
 
+## Test Note - Powerup Readability
+
+- Date: 2026-09-01
+- Tester relationship to you: User test note reported by project owner
+- Device/browser: Not recorded
+- Play URL or local build: Scrap Circuit public build before `PLAYTEST BUILD 03`
+- Was the tester signed out of GitHub? Not recorded
+- Was this tested on a second device? Not recorded
+- Duration: Not recorded
+
+### Most Consequential Friction
+
+- Biggest confusion or slowdown: Powerups did not have a noticeable enough effect.
+- Why it matters for the game: Creative upgrades are the main hook. If players cannot clearly feel or see them, collecting crates feels less rewarding and the race has fewer memorable moments.
+- Evidence from the test: The user-test note specifically said the powerups "dont have that much of a noticiable effect."
+
+### Revision Made
+
+- Change made after the test: Increased powerup duration/strength and added stronger visual feedback: rocket flame/burst, magnet tethers, phase glow, larger banana puddles, sparks, and floating callouts.
+- File(s) changed: `src/game.js`, `index.html`
+- Why this change targets the friction: The revision makes every powerup produce an immediate visible and mechanical change, so players can connect the crate pickup and SPACE activation to a clear effect.
+
+### Verification Attempt
+
+- Date: Pending
+- Tester: Pending
+- Did the original friction improve? Pending
+- What new issue appeared, if any? Pending
+- Evidence: Needs a second playtest after `PLAYTEST BUILD 03` is live.
+
 ## Test Setup
 
 - Date:
