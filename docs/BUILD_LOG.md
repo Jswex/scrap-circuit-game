@@ -2,6 +2,26 @@
 
 This is the chronological record of the project. New work should be added at the top of the log under a dated heading.
 
+## 2026-09-01 - Public Pages Access Fix
+
+### What changed
+
+- Added `.nojekyll` so GitHub Pages serves the static files directly without Jekyll processing.
+- Added `404.html` that redirects back to `/scrap-circuit-game/` if someone lands on a bad path inside the project site.
+
+### Why
+
+The game loaded from the exact public URL during an unauthenticated check, but a different device reported a GitHub Pages 404. The fallback page gives the project a better recovery path and the `.nojekyll` file removes one common source of static-site publishing friction.
+
+### Verification
+
+- Confirmed `https://jswex.github.io/scrap-circuit-game/` returned the live `Scrap Circuit` HTML before this fix.
+
+### Known limitations
+
+- This cannot fix a completely different URL, capitalization error, or a typo outside `/scrap-circuit-game/`.
+- A signed-out browser and second-device check still need to be repeated after GitHub Pages finishes redeploying.
+
 ## 2026-09-01 - Wrecker's Pass And Rubric Evidence
 
 ### What changed
