@@ -8,16 +8,18 @@ This is the chronological record of the project. New work should be added at the
 
 - Diagnosed that the repository is public, but the GitHub Pages configuration endpoint returned `404`.
 - Published the same static site files to a dedicated `gh-pages` branch.
+- Added `.github/workflows/pages.yml`, a standard static-site GitHub Pages deployment workflow.
 
 ### Why
 
-Some devices were seeing GitHub's "There isn't a GitHub Pages site here" message. A dedicated `gh-pages` branch gives GitHub Pages a conventional publishing source for the project site instead of depending on ambiguous repository settings.
+Some devices were seeing GitHub's "There isn't a GitHub Pages site here" message. A dedicated `gh-pages` branch gives GitHub Pages a conventional publishing source for the project site, and the workflow supports GitHub's Actions-based Pages publishing mode.
 
 ### Verification
 
 - Public repository API reported `private: false` and `visibility: public`.
 - Public repository page returned HTTP 200 without authentication.
 - Public game URL returned HTTP 200 and contained the `Scrap Circuit` HTML.
+- GitHub's official Pages documentation was checked for the current branch and Actions publishing options.
 
 ### Known limitations
 
