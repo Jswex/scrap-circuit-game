@@ -2,6 +2,26 @@
 
 This is the chronological record of the project. New work should be added at the top of the log under a dated heading.
 
+## 2026-09-01 - Stronger Speed Pads
+
+### What changed
+
+- Increased speed-pad boost strength from `255` to `380` for the player.
+- Increased speed-pad boost strength from `195` to `265` for bots.
+- Updated the build label to `PLAYTEST BUILD 06`.
+
+### Why
+
+The speed pads needed to feel more exciting and obvious when hit. The player boost is stronger than the bot boost so the pads feel rewarding without making bot movement too chaotic.
+
+### Verification
+
+- Inspected the speed-pad collision code and build label after editing.
+
+### Known limitations
+
+- A live race should confirm the stronger boost still feels controllable on turns.
+
 ## 2026-09-01 - Speed Pads And Magnet Rework
 
 ### What changed

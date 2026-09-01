@@ -396,7 +396,7 @@ function useBoostPads(car, dt) {
   for (const pad of boostPads) {
     if (pad.cooldown > 0 || car.finished) continue;
     if (Math.hypot(car.x - pad.x, car.y - pad.y) < 52) {
-      car.speed += car.controlled ? 255 : 195;
+      car.speed += car.controlled ? 380 : 265;
       pad.cooldown = 1.9;
       burst(pad.x, pad.y, "#ff7a2f", 26, 210);
       if (car.controlled) callouts.push({ x: pad.x, y: pad.y - 42, text: "SPEED PAD", color: "#ff7a2f", life: 0.85 });
