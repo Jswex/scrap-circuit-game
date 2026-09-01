@@ -2,6 +2,38 @@
 
 This is the chronological record of the project. New work should be added at the top of the log under a dated heading.
 
+## 2026-09-01 - Wrecker's Pass And Rubric Evidence
+
+### What changed
+
+- Rebuilt the race around a much larger winding world-space course.
+- Added a smooth follow camera so the full track is no longer visible at once.
+- Set the race direction to counterclockwise and added yellow route arrows on the road.
+- Kept the core loop: start, race bots, collect creative upgrades, complete three laps, finish, and restart.
+- Updated the start screen copy so first-time players see the objective, lap count, direction, controls, and upgrade rule immediately.
+- Confirmed the GitHub repository reports `visibility: public`.
+- Added `docs/RUBRIC_TRACKER.md` to map the project evidence against the BUSFIN 4215 "Ship a Game" rubric.
+- Tightened `docs/PLAYTEST.md` into a silent unfamiliar-user test template with revision and verification fields.
+- Rewrote `README.md` with the public play URL, public repo URL, current feature list, and evidence links.
+- Removed stale UI markup/styles from older credits, countdown, difficulty, and upgrade-choice experiments.
+- Restored mobile touch control bindings for the new driving system.
+
+### Why
+
+The circular/oval version was too predictable because players could see and understand the whole route immediately. A larger changing course makes route reading, camera framing, upgrades, and steering matter more. The rubric evidence files were added because Level 4 depends on more than working code: the submission also needs public access, a real user test, a meaningful revision, and a student explanation of the work.
+
+### Verification
+
+- GitHub repository metadata confirmed `Jswex/scrap-circuit-game` is public.
+- GitHub Pages URL `https://jswex.github.io/scrap-circuit-game/` returned HTTP 200 from an unauthenticated web request.
+- Local files were patched to match the current HTML structure and assignment evidence requirements.
+
+### Known limitations
+
+- The public GitHub Pages URL still needs to be opened in a normal signed-out browser and on a second device.
+- A full three-lap race through the newest course still needs live browser verification.
+- The unfamiliar-user test must be real and cannot be filled in until someone else plays silently.
+
 ## 2026-08-27 - Shortcuts and Mid-Race Choices
 
 ### What changed

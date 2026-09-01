@@ -11,19 +11,17 @@
   <main class="game-shell">
     <header class="topbar">
       <div class="brand"><span>SCRAP</span> CIRCUIT</div>
-      <div class="race-label">Junkyard Run <strong>2 laps</strong></div>
-      <div class="credit-label">CREDITS <strong id="credits">1,000</strong></div>
-      <span class="build-tag">PLAYTEST BUILD 01</span>
+      <div class="race-label">Wrecker's Pass <strong>3 laps counterclockwise</strong></div>
+      <span class="build-tag">PLAYTEST BUILD 02</span>
     </header>
 
     <section class="arena" aria-label="Racing game">
       <canvas id="gameCanvas" width="1280" height="720"></canvas>
-      <div id="countdown" class="countdown" aria-live="polite"></div>
 
       <aside class="hud hud-left">
         <span class="hud-label">POSITION</span>
         <strong id="position">1<sup>st</sup></strong>
-        <span id="lap">LAP 1 / 2</span>
+        <span id="lap">LAP 1 / 3</span>
       </aside>
 
       <aside class="hud hud-right">
@@ -38,40 +36,20 @@
         <kbd>SPACE</kbd>
       </div>
 
-      <div id="toast" class="toast"></div>
-
-      <section id="upgradePanel" class="panel upgrade-panel hidden">
-        <p class="eyebrow">SCRAP DROP</p>
-        <h2>CHOOSE YOUR TECH</h2>
-        <p>Time is paused. Pick one upgrade for the next stretch.</p>
-        <div class="upgrade-choices">
-          <button class="upgrade-choice" data-upgrade="0" type="button"><span>➤</span><strong>ROCKET SNEEZE</strong><small>Temporary speed burst</small></button>
-          <button class="upgrade-choice" data-upgrade="1" type="button"><span>⊕</span><strong>JUNK MAGNET</strong><small>Pull nearby crates closer</small></button>
-          <button class="upgrade-choice" data-upgrade="2" type="button"><span>◈</span><strong>PHASE DRIVE</strong><small>Keep grip through chaos</small></button>
-          <button class="upgrade-choice" data-upgrade="3" type="button"><span>⌁</span><strong>BANANA PRINTER</strong><small>Drop slippery hazards</small></button>
-        </div>
-      </section>
-
       <section id="startPanel" class="panel start-panel">
         <p class="eyebrow">RACE BRIEFING</p>
         <h1>SCRAP<br><span>CIRCUIT</span></h1>
-        <p>Beat three reckless bots across two laps. Stay on the road, grab scrap tech, and finish first.</p>
+        <p>Beat three reckless bots across three counterclockwise laps on a huge winding course. Stay on the road, grab scrap tech, and finish first.</p>
         <div class="controls">
           <span><kbd>WASD</kbd><small>STEER + ACCELERATE</small></span>
           <span><kbd>SPACE</kbd><small>USE UPGRADE</small></span>
         </div>
         <ul class="instruction-list">
-          <li>Collect yellow crates for credits and upgrades.</li>
+          <li>Follow the road arrows counterclockwise.</li>
+          <li>Collect glowing crates for creative upgrades.</li>
           <li>Use upgrades before another crate replaces them.</li>
-          <li>Going wide snaps you back onto the road.</li>
+          <li>Going wide slows you down, so clean turns matter.</li>
         </ul>
-        <label class="difficulty-control" for="difficulty">RACE PACE
-          <select id="difficulty">
-            <option value="easy">EASY</option>
-            <option value="normal" selected>NORMAL</option>
-            <option value="hard">HARD</option>
-          </select>
-        </label>
         <button id="startButton" class="primary-button" type="button">START RACE</button>
       </section>
 
@@ -83,10 +61,10 @@
       </section>
 
       <div class="mobile-controls" aria-label="Touch controls">
-        <button data-key="ArrowLeft" aria-label="Steer left">←</button>
-        <button data-key="ArrowUp" aria-label="Accelerate">↑</button>
-        <button data-key="ArrowRight" aria-label="Steer right">→</button>
-        <button data-key="Space" class="use-button" aria-label="Use upgrade">⚡</button>
+        <button data-key="arrowleft" aria-label="Steer left">&lt;</button>
+        <button data-key="arrowup" aria-label="Accelerate">^</button>
+        <button data-key="arrowright" aria-label="Steer right">&gt;</button>
+        <button data-key=" " class="use-button" aria-label="Use upgrade">BOOST</button>
       </div>
     </section>
   </main>

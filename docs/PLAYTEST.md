@@ -1,54 +1,57 @@
 # Playtest Record
 
-This document captures player feedback to identify friction and guide revisions.
+Use this for the real unfamiliar-user test required by the game rubric. Let the player try silently first. Do not explain the controls unless they are fully stuck; write down what happened before helping.
 
-## Testing Setup
+## Test Setup
 
-- **Date:** [Date]
-- **Tester:** [Player name, optional]
-- **Device/Browser:** [e.g., Chrome on Windows, Safari on iPhone]
-- **Duration:** [Time spent]
-- **Difficulty:** [Easy / Normal / Hard]
+- Date:
+- Tester relationship to you:
+- Device/browser:
+- Play URL or local build:
+- Was the tester signed out of GitHub? Y/N
+- Was this tested on a second device? Y/N
+- Duration:
 
-## Observations
+## Silent Observation
 
-### First 30 seconds
-- Did the player understand the objective? (Y/N)
-- Did they understand the controls? (Y/N)
-- Any hesitation or confusion?
+- First thing the player clicked or pressed:
+- Did they understand the objective without help? Y/N
+- Did they understand the route direction without help? Y/N
+- Did they use acceleration and steering without help? Y/N
+- Did they collect a crate intentionally? Y/N
+- Did they use an upgrade intentionally? Y/N
+- Did they finish the race? Y/N
+- Did they use restart or ask to play again? Y/N
 
-### Midgame (first lap)
-- Did they attempt shortcuts? (Y/N)
-- Did they notice landmarks? (Y/N)
-- Did they hit hazards? (Y/N)
-- Did the pause screen for upgrades feel intrusive or helpful?
+## Specific Behaviors Observed
 
-### Race completion
-- Did the player finish the race? (Y/N)
-- If not, when did they stop and why?
-- Any moments of frustration?
-- Any moments of fun or satisfaction?
+List moments you actually saw, not general opinions.
 
-## Friction or Blocked Moments
+1. Moment:
+   What happened:
+2. Moment:
+   What happened:
+3. Moment:
+   What happened:
 
-List any moment where the player got stuck, confused, or lost interest:
-1. [Moment]: [What happened]
-2. [Moment]: [What happened]
+## Most Consequential Friction
 
-## Specific Feedback
+- Biggest confusion or slowdown:
+- Why it matters for the game:
+- Evidence from the test:
 
-- What was the most confusing part?
-- What felt rewarding?
-- One thing they'd change?
+## Revision Made
 
-## Revision Planned
+- Change made after the test:
+- File(s) changed:
+- Why this change targets the friction:
 
-Based on this test, the next change will be:
-[Description of single change to try]
+## Verification Attempt
 
-### Verification
+After the revision, test again with the same player or a new player.
 
-After the change, test again with a new player or return to the same player:
-- Did the friction resolve? (Y/N)
-- New friction discovered? (list)
-- Evidence: [Screenshot, notes, or brief quote]
+- Date:
+- Tester:
+- Did the original friction improve? Y/N
+- What new issue appeared, if any?
+- Evidence:

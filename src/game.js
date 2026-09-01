@@ -1,318 +1,616 @@
-"use strict";
-
-const canvas = document.querySelector("#gameCanvas");
+const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
-const ui = {
-  position: document.querySelector("#position"), lap: document.querySelector("#lap"), speed: document.querySelector("#speed"),
-  upgradeHud: document.querySelector("#upgradeHud"), upgradeIcon: document.querySelector("#upgradeIcon"), upgradeName: document.querySelector("#upgradeName"),
-  countdown: document.querySelector("#countdown"), toast: document.querySelector("#toast"), startPanel: document.querySelector("#startPanel"),
-  finishPanel: document.querySelector("#finishPanel"), finishTitle: document.querySelector("#finishTitle"), finishStats: document.querySelector("#finishStats"), credits: document.querySelector("#credits"), upgradePanel: document.querySelector("#upgradePanel"), difficulty: document.querySelector("#difficulty")
-};
 
-const TRACK = {
-  width: 142,
-  points: [
-    { x: 260, y: 850 }, { x: 300, y: 470 }, { x: 540, y: 220 }, { x: 960, y: 180 },
-    { x: 1320, y: 330 }, { x: 1510, y: 650 }, { x: 1770, y: 570 }, { x: 2150, y: 320 },
-    { x: 2390, y: 500 }, { x: 2280, y: 900 }, { x: 1950, y: 1110 }, { x: 1540, y: 1010 },
-    { x: 1220, y: 1260 }, { x: 760, y: 1190 }, { x: 430, y: 1030 }
-  ]
-};
-const TRACK_SEGMENTS = TRACK.points.map((point, i) => {
-  const next = TRACK.points[(i + 1) % TRACK.points.length];
-  return Math.hypot(next.x - point.x, next.y - point.y);
-});
-const TRACK_LENGTH = TRACK_SEGMENTS.reduce((total, length) => total + length, 0);
-const LAPS = 2;
+const startScreen = document.getElementById("startPanel");
+const startButton = document.getElementById("startButton");
+const restartButton = document.getElementById("restartButton");
+const finalPanel = document.getElementById("finishPanel");
+const finalTitle = document.getElementById("finishTitle");
+const finalStats = document.getElementById("finishStats");
+const lapDisplay = document.getElementById("lap");
+const positionDisplay = document.getElementById("position");
+const speedDisplay = document.getElementById("speed");
+const upgradeName = document.getElementById("upgradeName");
+const upgradeHint = document.querySelector("#upgradeHud small");
+
 const keys = new Set();
-const colors = ["#ffce3a", "#e85d38", "#50c6d7", "#d970e8"];
-const names = ["YOU", "RIVET", "BYTE", "MAYHEM"];
-const difficultyPaces = { easy: .82, normal: 1, hard: 1.15 };
+const WORLD = { width: 3200, height: 2350 };
+const TRACK_WIDTH = 174;
+const ROAD_EDGE = 214;
+const LAPS_TO_WIN = 3;
+
+const controlPoints = [
+  { x: 1510, y: 1935 },
+  { x: 2140, y: 2090 },
+  { x: 2825, y: 1830 },
+  { x: 2420, y: 1395 },
+  { x: 2800, y: 965 },
+  { x: 2595, y: 375 },
+  { x: 1935, y: 250 },
+  { x: 1390, y: 555 },
+  { x: 860, y: 255 },
+  { x: 270, y: 485 },
+  { x: 535, y: 1000 },
+  { x: 395, y: 1545 },
+  { x: 910, y: 1885 },
+];
+
 const upgrades = [
-  { name: "ROCKET SNEEZE", icon: "➤", color: "#ff5c45", help: "A violent three-second boost", use(car) { car.boost = 3; } },
-  { name: "JUNK MAGNET", icon: "⊕", color: "#54d6dd", help: "Pull nearby crates toward you", use(car) { car.magnet = 7; } },
-  { name: "PHASE DRIVE", icon: "◈", color: "#d970e8", help: "Keep your grip through five seconds of chaos", use(car) { car.phase = 5; } },
-  { name: "BANANA PRINTER", icon: "⌁", color: "#ffe25c", help: "Print slippery hazards behind you", use(car) { car.banana = 4; } }
+  {
+    id: "rocket",
+    name: "Rocket Sneeze",
+    color: "#ffcb45",
+    hint: "SPACE launches a crooked burst of speed.",
+    duration: 1.1,
+  },
+  {
+    id: "magnet",
+    name: "Junk Magnet",
+    color: "#49d5ff",
+    hint: "SPACE pulls nearby boost crates into your car.",
+    duration: 4.5,
+  },
+  {
+    id: "phase",
+    name: "Phase Drive",
+    color: "#b56cff",
+    hint: "SPACE lets you ignore grass slowdown for a moment.",
+    duration: 3.2,
+  },
+  {
+    id: "banana",
+    name: "Banana Printer",
+    color: "#7cff6b",
+    hint: "SPACE drops slippery scrap behind you.",
+    duration: 0.4,
+  },
 ];
 
-let cars = [], crates = [], bananas = [], particles = [], state = "menu", last = 0, elapsed = 0, countdown = 0, nextOffer = 0, finished = [], credits = 1000;
-const camera = { x: TRACK.points[0].x, y: TRACK.points[0].y };
+let track = [];
+let scenery = [];
+let crates = [];
+let hazards = [];
+let cars = [];
+let player;
+let state = "menu";
+let lastTime = 0;
+let startedAt = 0;
+let finishedAt = 0;
+let camera = { x: 0, y: 0 };
+let crateSeed = 0;
 
-function pointOnTrack(t, lane = 0) {
-  const wrapped = ((t % 1) + 1) % 1;
-  let distance = wrapped * TRACK_LENGTH;
-  let segment = 0;
-  while (distance > TRACK_SEGMENTS[segment]) distance -= TRACK_SEGMENTS[segment++];
-  const start = TRACK.points[segment];
-  const end = TRACK.points[(segment + 1) % TRACK.points.length];
-  const ratio = distance / TRACK_SEGMENTS[segment];
-  const x = start.x + (end.x - start.x) * ratio;
-  const y = start.y + (end.y - start.y) * ratio;
-  const length = TRACK_SEGMENTS[segment];
-  const normalX = -(end.y - start.y) / length;
-  const normalY = (end.x - start.x) / length;
-  return { x: x + normalX * lane, y: y + normalY * lane };
+function resizeCanvas() {
+  canvas.width = Math.floor(window.innerWidth * window.devicePixelRatio);
+  canvas.height = Math.floor(window.innerHeight * window.devicePixelRatio);
+  ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
 }
 
-function trackTangent(t) {
-  const ahead = pointOnTrack(t + .001);
-  const behind = pointOnTrack(t - .001);
-  return Math.atan2(ahead.y - behind.y, ahead.x - behind.x);
+function catmull(p0, p1, p2, p3, t) {
+  const t2 = t * t;
+  const t3 = t2 * t;
+  return {
+    x: 0.5 * ((2 * p1.x) + (-p0.x + p2.x) * t + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 + (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3),
+    y: 0.5 * ((2 * p1.y) + (-p0.y + p2.y) * t + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3),
+  };
 }
 
-const SHORTCUTS = [.27, .55, .78].map((from, i) => ({ start: pointOnTrack(from), end: pointOnTrack(from + [.055, .07, .085][i]), width: 96 }));
-const LANDMARKS = [
-  { t: .13, label: "CRANE YARD", color: "#e85d38" },
-  { t: .43, label: "TIRE MOUNTAIN", color: "#50c6d7" },
-  { t: .69, label: "PRESSED CARS", color: "#d970e8" },
-  { t: .92, label: "REPAIR BAY", color: "#ffce3a" }
-];
-const TRACK_OBJECTS = [
-  { t: .37, type: "oil", label: "OIL SLICK" },
-  { t: .62, type: "oil", label: "OIL SLICK" },
-  { t: .91, type: "repair", label: "REPAIR BAY" },
-  { t: .48, type: "ramp", label: "JUNK RAMP" }
-].map(object => ({ ...object, ...pointOnTrack(object.t, object.type === "repair" ? -20 : 0), cooldown: 0 }));
-
-function makeCar(i) {
-  const t = .205 + i * .012;
-  const p = pointOnTrack(t, (i % 2) * 24 - 12);
-  return { i, name: names[i], color: colors[i], x: p.x, y: p.y, angle: trackTangent(t) + Math.PI, speed: 0, t, progress: 1 - t, lap: 0, distanceTravelled: 0, lane: (i % 2) * 24 - 12, upgrade: null, boost: 0, magnet: 0, phase: 0, banana: 0, spin: 0, hazardCooldown: 0, finished: false, nextDrop: 0, onShortcut: false };
-}
-
-function reset() {
-  cars = names.map((_, i) => makeCar(i));
-  crates = Array.from({ length: 12 }, (_, i) => ({ ...pointOnTrack(i / 12, i % 2 ? 18 : -18), active: true, respawn: 0, spin: i }));
-  bananas = []; particles = []; finished = []; elapsed = 0; countdown = 1.6; nextOffer = 8; state = "countdown";
-  TRACK_OBJECTS.forEach(object => { object.cooldown = 0; });
-  camera.x = cars[0].x; camera.y = cars[0].y;
-  ui.finishPanel.classList.add("hidden"); ui.upgradePanel.classList.add("hidden"); ui.startPanel.classList.add("hidden");
-}
-
-function normalizeAngle(a) { while (a > Math.PI) a -= Math.PI * 2; while (a < -Math.PI) a += Math.PI * 2; return a; }
-function ordinal(n) { return n + ({ 1: "st", 2: "nd", 3: "rd" }[n] || "th"); }
-function raceScore(car) { return car.lap * Math.PI * 2 + car.progress; }
-
-function updatePlayer(car, dt) {
-  if (car.spin > 0) { car.spin -= dt; car.angle += dt * 4; car.speed *= .98; return; }
-  const accelerate = keys.has("KeyW") || keys.has("ArrowUp");
-  const brake = keys.has("KeyS") || keys.has("ArrowDown");
-  const turn = (keys.has("KeyD") || keys.has("ArrowRight") ? 1 : 0) - (keys.has("KeyA") || keys.has("ArrowLeft") ? 1 : 0);
-  car.speed += (accelerate ? 480 : -105) * dt;
-  if (brake) car.speed -= 320 * dt;
-  const max = car.boost > 0 ? 620 : 450;
-  car.speed = Math.max(-70, Math.min(max, car.speed));
-  car.angle += turn * dt * 2.45 * Math.min(1, Math.abs(car.speed) / 80) * (car.speed < 0 ? -1 : 1);
-  car.x += Math.cos(car.angle) * car.speed * dt;
-  car.y += Math.sin(car.angle) * car.speed * dt;
-}
-
-function updateBot(car, dt) {
-  if (car.spin > 0) { car.spin -= dt; car.angle += dt * 4; car.speed *= .98; return; }
-  const targetT = car.t - .018;
-  const target = pointOnTrack(targetT, car.lane);
-  const desired = Math.atan2(target.y - car.y, target.x - car.x);
-  car.angle += normalizeAngle(desired - car.angle) * dt * 4;
-  const pace = (360 + car.i * 8 + Math.sin(elapsed * .6 + car.i) * 18 + (car.boost > 0 ? 160 : 0)) * difficultyPaces[ui.difficulty.value];
-  car.speed += (pace - car.speed) * dt * 2.2;
-  car.x += Math.cos(car.angle) * car.speed * dt;
-  car.y += Math.sin(car.angle) * car.speed * dt;
-  if (car.upgrade && Math.random() < dt * .18) useUpgrade(car);
-}
-
-function nearestTrackPoint(x, y) {
-  let nearest = { distance: Infinity, t: 0, x: TRACK.points[0].x, y: TRACK.points[0].y };
-  TRACK.points.forEach((point, i) => {
-    const next = TRACK.points[(i + 1) % TRACK.points.length];
-    const dx = next.x - point.x, dy = next.y - point.y;
-    const lengthSquared = dx * dx + dy * dy;
-    const ratio = Math.max(0, Math.min(1, ((x - point.x) * dx + (y - point.y) * dy) / lengthSquared));
-    const closestX = point.x + dx * ratio, closestY = point.y + dy * ratio;
-    const distance = Math.hypot(x - closestX, y - closestY);
-    if (distance < nearest.distance) nearest = { distance, t: (i + ratio) / TRACK.points.length, x: closestX, y: closestY };
-  });
-  return nearest;
-}
-
-function checkLandmark(car) {
-  LANDMARKS.forEach(landmark => {
-    const distance = Math.hypot(car.x - landmark.pos.x, car.y - landmark.pos.y);
-    if (distance < 120 && !landmark.seen) { landmark.seen = true; if (car.i === 0) toast(landmark.label); }
-  });
-}
-
-function checkHazard(car, dt) {
-  if (car.hazardCooldown > 0) return;
-  TRACK_OBJECTS.forEach(object => {
-    const distance = Math.hypot(car.x - object.x, car.y - object.y);
-    if (distance < 48) {
-      if (object.type === "oil" && car.phase <= 0) { car.speed *= .65; car.hazardCooldown = 2; if (car.i === 0) { toast("HIT " + object.label); burst(car.x, car.y, "#444a50", 12); } }
-      if (object.type === "ramp") { car.speed += 180; car.hazardCooldown = 1.5; if (car.i === 0) toast("RAMP BOOST"); }
-      if (object.type === "repair" && car.i === 0) { credits += 50; car.hazardCooldown = 3; toast("REPAIR BAY +50"); refreshCredits(); }
+function buildTrack() {
+  track = [];
+  for (let i = 0; i < controlPoints.length; i += 1) {
+    const p0 = controlPoints[(i - 1 + controlPoints.length) % controlPoints.length];
+    const p1 = controlPoints[i];
+    const p2 = controlPoints[(i + 1) % controlPoints.length];
+    const p3 = controlPoints[(i + 2) % controlPoints.length];
+    for (let step = 0; step < 36; step += 1) {
+      track.push(catmull(p0, p1, p2, p3, step / 36));
     }
-  });
-}
-
-function updateProgress(car) {
-  const nearest = nearestTrackPoint(car.x, car.y);
-  const previous = car.t;
-  const t = nearest.t;
-  if (previous < .25 && t > .75 && car.speed > 0 && car.distanceTravelled > TRACK_LENGTH * .75) { car.lap++; if (car.i === 0) toast("LAP " + car.lap + " COMPLETE"); }
-  car.t = t; car.progress = 1 - t;
-  checkLandmark(car);
-  if (car.lap >= LAPS && !car.finished) finishCar(car);
-}
-
-function trackDistance(x, y) {
-  return nearestTrackPoint(x, y).distance;
-}
-
-function nearestRoadPoint(x, y) {
-  let nearest = nearestTrackPoint(x, y);
-  SHORTCUTS.forEach(shortcut => {
-    const dx = shortcut.end.x - shortcut.start.x, dy = shortcut.end.y - shortcut.start.y;
-    const ratio = Math.max(0, Math.min(1, ((x - shortcut.start.x) * dx + (y - shortcut.start.y) * dy) / (dx * dx + dy * dy)));
-    const closestX = shortcut.start.x + dx * ratio, closestY = shortcut.start.y + dy * ratio;
-    const distance = Math.hypot(x - closestX, y - closestY);
-    if (distance < nearest.distance) nearest = { distance, x: closestX, y: closestY };
-  });
-  return nearest;
-}
-
-function keepOnTrack(car) {
-  const nearest = nearestRoadPoint(car.x, car.y);
-  const limit = TRACK.width / 2 - 12;
-  if (nearest.distance <= limit) return;
-  const distance = Math.max(nearest.distance, 1);
-  const allowed = Math.min(limit, nearest.distance);
-  car.x = nearest.x + (car.x - nearest.x) / distance * allowed;
-  car.y = nearest.y + (car.y - nearest.y) / distance * allowed;
-  car.speed *= .88;
-}
-
-function updateHazards(dt) {
-  TRACK_OBJECTS.forEach(o => { o.cooldown = Math.max(0, o.cooldown - dt); });
-  cars.forEach(car => { car.hazardCooldown = Math.max(0, car.hazardCooldown - dt); });
-}
-
-function useUpgrade(car) {
-  if (!car || !car.upgrade || state !== "racing") return;
-  const up = car.upgrade; car.upgrade = null; up.use(car);
-  burst(car.x, car.y, up.color, 18);
-  if (car.i === 0) { toast(up.name + " ACTIVATED"); refreshUpgrade(); }
-}
-
-function openUpgradePanel() {
-  state = "upgrade";
-  ui.upgradePanel.classList.remove("hidden");
-}
-
-function chooseUpgrade(index) {
-  if (state !== "upgrade") return;
-  cars[0].upgrade = upgrades[index];
-  ui.upgradePanel.classList.add("hidden");
-  nextOffer = elapsed + 12;
-  state = "racing";
-  refreshUpgrade();
-  toast(upgrades[index].name + " SELECTED");
-}
-
-function update(dt) {
-  particles.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt; });
-  particles = particles.filter(p => p.life > 0);
-  crates.forEach(c => { c.spin += dt * 2.8; if (!c.active && (c.respawn -= dt) <= 0) c.active = true; });
-  updateHazards(dt);
-  if (state === "countdown") {
-    countdown -= dt; ui.countdown.textContent = countdown > 1 ? Math.ceil(countdown) : countdown > 0 ? "GO!" : "";
-    if (countdown <= -.35) state = "racing";
-    return;
   }
-  if (state !== "racing") return;
-  elapsed += dt;
-  if (elapsed >= nextOffer) { openUpgradePanel(); return; }
-  cars.forEach((car, i) => {
-    if (car.finished) return;
-    if (i === 0) updatePlayer(car, dt); else updateBot(car, dt);
-    ["boost", "magnet", "phase", "banana"].forEach(k => car[k] = Math.max(0, car[k] - dt));
-    checkHazard(car, dt);
-    if (car.banana > 0 && elapsed > car.nextDrop) { bananas.push({ x: car.x, y: car.y, life: 10, owner: car.i }); car.nextDrop = elapsed + .32; }
-    keepOnTrack(car);
-    car.distanceTravelled += Math.max(0, car.speed) * dt;
-    if (car.magnet > 0) crates.forEach(c => { if (c.active && Math.hypot(c.x-car.x,c.y-car.y)<180) { c.x += (car.x-c.x)*dt*2.4; c.y += (car.y-c.y)*dt*2.4; } });
-    crates.forEach(c => { if (c.active && !car.upgrade && Math.hypot(c.x-car.x,c.y-car.y)<27) collectCrate(car,c); });
-    bananas.forEach(b => { if (b.owner !== car.i && Math.hypot(b.x-car.x,b.y-car.y)<24) { car.spin=.35; b.life=0; burst(b.x,b.y,"#ffe25c",10); } });
-    updateProgress(car);
-  });
-  bananas.forEach(b => b.life -= dt); bananas = bananas.filter(b => b.life > 0);
+}
+
+function nearestTrackDistance(x, y) {
+  let best = Infinity;
+  for (const point of track) {
+    const distance = Math.hypot(x - point.x, y - point.y);
+    if (distance < best) best = distance;
+  }
+  return best;
+}
+
+function directionAt(index) {
+  const a = track[index % track.length];
+  const b = track[(index + 7) % track.length];
+  return Math.atan2(b.y - a.y, b.x - a.x);
+}
+
+function offsetPoint(index, lane = 0) {
+  const point = track[index % track.length];
+  const angle = directionAt(index);
+  return {
+    x: point.x + Math.cos(angle + Math.PI / 2) * lane,
+    y: point.y + Math.sin(angle + Math.PI / 2) * lane,
+  };
+}
+
+function seededNoise(seed) {
+  const x = Math.sin(seed * 999.7) * 10000;
+  return x - Math.floor(x);
+}
+
+function buildScenery() {
+  scenery = [];
+  for (let i = 0; i < 190; i += 1) {
+    const x = 110 + seededNoise(i + 4) * (WORLD.width - 220);
+    const y = 110 + seededNoise(i + 300) * (WORLD.height - 220);
+    if (nearestTrackDistance(x, y) < ROAD_EDGE + 80) continue;
+    scenery.push({
+      x,
+      y,
+      radius: 7 + seededNoise(i + 700) * 16,
+      color: seededNoise(i + 900) > 0.35 ? "#2a9d59" : "#536b46",
+      rock: seededNoise(i + 1200) > 0.82,
+    });
+  }
+}
+
+function spawnCrates() {
+  crates = [];
+  crateSeed += 1;
+  for (let i = 34; i < track.length; i += 42) {
+    const lane = seededNoise(i + crateSeed * 9) > 0.5 ? -42 : 42;
+    const pos = offsetPoint(i, lane);
+    crates.push({
+      x: pos.x,
+      y: pos.y,
+      type: upgrades[(i + crateSeed) % upgrades.length],
+      taken: false,
+      bob: seededNoise(i + 50) * Math.PI * 2,
+    });
+  }
+}
+
+function createCar(name, color, lane, index, controlled = false) {
+  const angle = directionAt(0);
+  const pos = offsetPoint(0, lane);
+  return {
+    name,
+    color,
+    x: pos.x - Math.cos(angle) * index * 48,
+    y: pos.y - Math.sin(angle) * index * 48,
+    angle,
+    speed: 0,
+    maxSpeed: controlled ? 356 : 322 + index * 8,
+    acceleration: controlled ? 245 : 198,
+    handling: controlled ? 3.4 : 2.45,
+    lane,
+    node: 0,
+    lap: 1,
+    controlled,
+    activeUpgrade: null,
+    upgradeTimer: 0,
+    upgradeReady: null,
+    cooldown: 0,
+    aiWobble: index * 1.7,
+    finished: false,
+    finishTime: 0,
+  };
+}
+
+function resetGame() {
+  hazards = [];
+  spawnCrates();
+  cars = [
+    createCar("You", "#ff5151", -35, 0, true),
+    createCar("Bolt", "#42d0ff", 18, 1),
+    createCar("Miso", "#ffe057", 52, 2),
+    createCar("Vera", "#8aff8a", -70, 3),
+  ];
+  player = cars[0];
+  camera = { x: player.x, y: player.y };
+  startedAt = performance.now();
+  finishedAt = 0;
+  state = "running";
+  finalPanel.classList.add("hidden");
+  startScreen.classList.add("hidden");
   updateHud();
 }
 
-function collectCrate(car, crate) {
-  crate.active = false; crate.respawn = 5; car.upgrade = upgrades[Math.floor(Math.random()*upgrades.length)];
-  if (car.i === 0) { credits += 25; refreshCredits(); }
-  burst(crate.x, crate.y, car.upgrade.color, 16);
-  if (car.i === 0) { toast(car.upgrade.name + " ACQUIRED"); refreshUpgrade(); }
-}
-
-function finishCar(car) {
-  car.finished = true; finished.push(car); car.place = finished.length;
-  if (car.i === 0) {
-    const finishBonus = Math.max(100, 500 - (car.place - 1) * 100);
-    credits += finishBonus;
-    refreshCredits();
-    state = "finished";
-    ui.finishTitle.textContent = "YOU FINISHED " + ordinal(car.place).toUpperCase();
-    ui.finishStats.textContent = `Time ${elapsed.toFixed(1)}s · ${car.place === 1 ? "Junkyard royalty." : "The circuit demands another run."}`;
-    setTimeout(() => ui.finishPanel.classList.remove("hidden"), 700);
+function activateUpgrade(car) {
+  if (!car.upgradeReady || car.cooldown > 0 || car.finished) return;
+  const upgrade = car.upgradeReady;
+  car.activeUpgrade = upgrade;
+  car.upgradeTimer = upgrade.duration;
+  car.cooldown = 0.35;
+  car.upgradeReady = null;
+  if (upgrade.id === "rocket") {
+    car.speed += 270;
+    car.angle += (seededNoise(performance.now()) - 0.5) * 0.35;
+  }
+  if (upgrade.id === "banana") {
+    hazards.push({
+      x: car.x - Math.cos(car.angle) * 42,
+      y: car.y - Math.sin(car.angle) * 42,
+      life: 9,
+    });
   }
 }
 
-function burst(x,y,color,count) { for(let i=0;i<count;i++){ const a=Math.random()*Math.PI*2,s=40+Math.random()*110; particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:.35+Math.random()*.5,color}); } }
-function toast(message) { ui.toast.textContent=message; ui.toast.classList.add("show"); clearTimeout(toast.timer); toast.timer=setTimeout(()=>ui.toast.classList.remove("show"),1400); }
-function refreshUpgrade(){ const up=cars[0]?.upgrade; ui.upgradeHud.classList.toggle("empty",!up); ui.upgradeIcon.textContent=up?.icon||"?"; ui.upgradeIcon.style.background=up?.color||"#ffce3a"; ui.upgradeName.textContent=up?.name||"Drive through a crate"; }
-function refreshCredits(){ ui.credits.textContent = credits.toLocaleString("en-US"); }
+function updatePlayer(dt) {
+  const accelerating = keys.has("arrowup") || keys.has("w");
+  const braking = keys.has("arrowdown") || keys.has("s");
+  const left = keys.has("arrowleft") || keys.has("a");
+  const right = keys.has("arrowright") || keys.has("d");
+
+  if (accelerating) player.speed += player.acceleration * dt;
+  if (braking) player.speed -= player.acceleration * 0.78 * dt;
+  if (!accelerating && !braking) player.speed *= 1 - 0.7 * dt;
+
+  const steerPower = Math.min(1, Math.abs(player.speed) / 165);
+  if (left) player.angle -= player.handling * steerPower * dt;
+  if (right) player.angle += player.handling * steerPower * dt;
+}
+
+function updateBot(car, dt) {
+  const targetIndex = (car.node + 15) % track.length;
+  const wobble = Math.sin(performance.now() / 700 + car.aiWobble) * 18;
+  const target = offsetPoint(targetIndex, car.lane + wobble);
+  const desiredAngle = Math.atan2(target.y - car.y, target.x - car.x);
+  let diff = desiredAngle - car.angle;
+  diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+  car.angle += Math.max(-car.handling * dt, Math.min(car.handling * dt, diff));
+
+  const offRoad = nearestTrackDistance(car.x, car.y) > TRACK_WIDTH / 2;
+  const goalSpeed = offRoad ? car.maxSpeed * 0.64 : car.maxSpeed;
+  car.speed += (goalSpeed - car.speed) * Math.min(1, dt * 1.9);
+  if (car.upgradeReady && Math.abs(diff) < 0.35) activateUpgrade(car);
+}
+
+function updateProgress(car) {
+  let bestNode = car.node;
+  let bestDist = Infinity;
+  for (let look = 1; look <= 28; look += 1) {
+    const candidate = (car.node + look) % track.length;
+    const point = track[candidate];
+    const dist = Math.hypot(car.x - point.x, car.y - point.y);
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestNode = candidate;
+    }
+  }
+  if (bestDist < 122) {
+    if (bestNode < car.node && car.node > track.length - 32) {
+      car.lap += 1;
+      if (car.lap > LAPS_TO_WIN && !car.finished) {
+        car.finished = true;
+        car.finishTime = performance.now();
+      }
+    }
+    car.node = bestNode;
+  }
+}
+
+function applySurface(car, dt) {
+  const offRoad = nearestTrackDistance(car.x, car.y) > TRACK_WIDTH / 2;
+  const phase = car.activeUpgrade?.id === "phase";
+  if (offRoad && !phase) car.speed *= 1 - 1.65 * dt;
+  if (offRoad && phase) car.speed += 35 * dt;
+}
+
+function updateCar(car, dt) {
+  if (car.finished) {
+    car.speed *= 1 - 1.6 * dt;
+  } else if (car.controlled) {
+    updatePlayer(dt);
+  } else {
+    updateBot(car, dt);
+  }
+
+  applySurface(car, dt);
+  car.cooldown = Math.max(0, car.cooldown - dt);
+  if (car.activeUpgrade) {
+    car.upgradeTimer -= dt;
+    if (car.upgradeTimer <= 0) car.activeUpgrade = null;
+  }
+
+  const maxBoost = car.activeUpgrade?.id === "rocket" ? 1.22 : 1;
+  car.speed = Math.max(-95, Math.min(car.maxSpeed * maxBoost, car.speed));
+  car.x += Math.cos(car.angle) * car.speed * dt;
+  car.y += Math.sin(car.angle) * car.speed * dt;
+  car.x = Math.max(30, Math.min(WORLD.width - 30, car.x));
+  car.y = Math.max(30, Math.min(WORLD.height - 30, car.y));
+  updateProgress(car);
+}
+
+function collectCrates(car, dt) {
+  const magnet = car.activeUpgrade?.id === "magnet";
+  for (const crate of crates) {
+    if (crate.taken) continue;
+    const dx = crate.x - car.x;
+    const dy = crate.y - car.y;
+    const distance = Math.hypot(dx, dy);
+    if (magnet && distance < 190) {
+      crate.x -= dx * Math.min(1, dt * 4.6);
+      crate.y -= dy * Math.min(1, dt * 4.6);
+    }
+    if (distance < 42) {
+      crate.taken = true;
+      car.upgradeReady = crate.type;
+      car.speed += 40;
+    }
+  }
+}
+
+function updateHazards(dt) {
+  for (const hazard of hazards) {
+    hazard.life -= dt;
+    for (const car of cars) {
+      if (car.finished) continue;
+      if (Math.hypot(car.x - hazard.x, car.y - hazard.y) < 38) {
+        car.speed *= 0.35;
+        car.angle += 1.05;
+        hazard.life = 0;
+      }
+    }
+  }
+  hazards = hazards.filter((hazard) => hazard.life > 0);
+}
+
+function raceScore(car) {
+  return (car.lap - 1) * track.length + car.node;
+}
+
+function standings() {
+  return [...cars].sort((a, b) => {
+    if (a.finished && b.finished) return a.finishTime - b.finishTime;
+    if (a.finished) return -1;
+    if (b.finished) return 1;
+    return raceScore(b) - raceScore(a);
+  });
+}
 
 function updateHud() {
-  const player=cars[0], order=[...cars].sort((a,b)=>raceScore(b)-raceScore(a)), place=order.indexOf(player)+1;
-  ui.position.innerHTML=`${place}<sup>${ordinal(place).slice(-2)}</sup>`; ui.lap.textContent=`LAP ${Math.min(LAPS,player.lap+1)} / ${LAPS}`; ui.speed.textContent=String(Math.round(Math.abs(player.speed))).padStart(3,"0");
+  lapDisplay.textContent = `LAP ${Math.min(player.lap, LAPS_TO_WIN)} / ${LAPS_TO_WIN}`;
+  const rank = standings().findIndex((car) => car === player) + 1;
+  positionDisplay.innerHTML = `${rank}<sup>${rank === 1 ? "st" : rank === 2 ? "nd" : rank === 3 ? "rd" : "th"}</sup>`;
+  speedDisplay.textContent = `${Math.round(Math.max(0, player.speed))}`;
+  if (player.upgradeReady) {
+    upgradeName.textContent = player.upgradeReady.name;
+    upgradeName.style.color = player.upgradeReady.color;
+    upgradeHint.textContent = "HELD UPGRADE";
+  } else if (player.activeUpgrade) {
+    upgradeName.textContent = `${player.activeUpgrade.name} active`;
+    upgradeName.style.color = player.activeUpgrade.color;
+    upgradeHint.textContent = "ACTIVE UPGRADE";
+  } else {
+    upgradeName.textContent = "No upgrade";
+    upgradeName.style.color = "";
+    upgradeHint.textContent = "HELD UPGRADE";
+  }
 }
 
-function drawTrack() {
-  ctx.fillStyle="#26352e"; ctx.fillRect(-10000,-10000,20000,20000);
-  for(let i=0;i<260;i++){ const x=(i*149)%2700,y=(i*83)%1500; ctx.fillStyle=i%3?"#304139":"#3a493d"; ctx.fillRect(x,y,3,3); }
-  ctx.lineCap="round"; ctx.lineJoin="round";
-  ctx.beginPath(); TRACK.points.forEach((point, i) => i ? ctx.lineTo(point.x, point.y) : ctx.moveTo(point.x, point.y)); ctx.closePath();
-  ctx.strokeStyle="#15191d"; ctx.lineWidth=TRACK.width+22; ctx.stroke();
-  ctx.strokeStyle="#444a50"; ctx.lineWidth=TRACK.width; ctx.stroke();
-  ctx.setLineDash([22,25]); ctx.strokeStyle="#777c80"; ctx.lineWidth=3; ctx.stroke(); ctx.setLineDash([]);
-  const start = pointOnTrack(0), finish = pointOnTrack(0, TRACK.width / 2);
-  ctx.strokeStyle="#e8e2d4"; ctx.lineWidth=7; ctx.beginPath(); ctx.moveTo(start.x - 45, start.y - 45); ctx.lineTo(finish.x + 45, finish.y + 45); ctx.stroke();
-  ctx.fillStyle="#e85d38"; for(let i=0;i<28;i++){ const p=pointOnTrack(i/28, TRACK.width/2+18); ctx.save();ctx.translate(p.x,p.y);ctx.rotate(trackTangent(i/28));ctx.fillRect(-8,-8,16,16);ctx.restore(); }
-  SHORTCUTS.forEach(shortcut => { ctx.lineCap="round"; ctx.strokeStyle="#15191d"; ctx.lineWidth=TRACK.width+22; ctx.beginPath(); ctx.moveTo(shortcut.start.x,shortcut.start.y); ctx.lineTo(shortcut.end.x,shortcut.end.y); ctx.stroke(); ctx.strokeStyle="#59636a"; ctx.lineWidth=TRACK.width; ctx.stroke(); ctx.setLineDash([18,20]); ctx.strokeStyle="#8c9496"; ctx.lineWidth=3; ctx.stroke(); ctx.setLineDash([]); });
-  LANDMARKS.forEach(landmark => { ctx.fillStyle = landmark.color + "44"; ctx.beginPath(); ctx.arc(landmark.pos.x, landmark.pos.y, 90, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = landmark.color; ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = landmark.color; ctx.font = "700 9px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(landmark.label, landmark.pos.x, landmark.pos.y); });
-  TRACK_OBJECTS.forEach(object => { const icon = object.type === "oil" ? "☷" : object.type === "ramp" ? "▲" : "⚙"; ctx.fillStyle = object.type === "oil" ? "#444a50" : object.type === "ramp" ? "#e85d38" : "#ffce3a"; ctx.beginPath(); ctx.arc(object.x, object.y, 18, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = "#101319"; ctx.font = "900 16px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(icon, object.x, object.y); });
+function finishRace() {
+  if (state !== "running") return;
+  state = "finished";
+  finishedAt = performance.now();
+  const ordered = standings();
+  const rank = ordered.findIndex((car) => car === player) + 1;
+  finalTitle.textContent = rank === 1 ? "You scrapped your way to first." : `Finished ${rank}${rank === 2 ? "nd" : rank === 3 ? "rd" : "th"}.`;
+  finalStats.textContent = `Time: ${((finishedAt - startedAt) / 1000).toFixed(1)}s. Upgrade crates collected: ${crates.filter((crate) => crate.taken).length}.`;
+  finalPanel.classList.remove("hidden");
 }
 
-function drawCrate(c){ if(!c.active)return; ctx.save();ctx.translate(c.x,c.y);ctx.rotate(c.spin);ctx.fillStyle="#ffce3a";ctx.fillRect(-14,-14,28,28);ctx.strokeStyle="#12161a";ctx.lineWidth=4;ctx.strokeRect(-14,-14,28,28);ctx.fillStyle="#12161a";ctx.font="900 18px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText("?",0,1);ctx.restore(); }
-function drawCar(car){ ctx.save();ctx.translate(car.x,car.y);ctx.rotate(car.angle); if(car.phase>0){ctx.globalAlpha=.42+Math.sin(elapsed*12)*.2;} ctx.fillStyle="#101319";ctx.fillRect(-17,-13,34,5);ctx.fillRect(-17,8,34,5);ctx.fillStyle=car.color;ctx.fillRect(-18,-10,36,20);ctx.fillStyle="#e8edf2";ctx.fillRect(3,-7,9,14);ctx.fillStyle="#171b20";ctx.fillRect(-6,-7,8,14);ctx.fillStyle=car.boost>0?"#62e6ff":"#e85d38";ctx.beginPath();ctx.moveTo(-18,-6);ctx.lineTo(-18-Math.random()*15,-1);ctx.lineTo(-18,5);ctx.fill();ctx.restore(); ctx.fillStyle="#f4f1e8";ctx.font="800 9px sans-serif";ctx.textAlign="center";ctx.fillText(car.name,car.x,car.y-19); }
-
-function draw() {
-  const targetWidth=Math.max(640,Math.round(canvas.clientWidth*devicePixelRatio)), targetHeight=Math.max(360,Math.round(canvas.clientHeight*devicePixelRatio));
-  if(canvas.width!==targetWidth||canvas.height!==targetHeight){ canvas.width=targetWidth;canvas.height=targetHeight; }
-  const player = cars[0];
-  const target = player || TRACK.points[0];
-  camera.x += (target.x - camera.x) * .08;
-  camera.y += (target.y - camera.y) * .08;
-  const scale=Math.min(canvas.width/1280,canvas.height/720) * 1.08;
-  ctx.setTransform(scale,0,0,scale,canvas.width/2-camera.x*scale,canvas.height/2-camera.y*scale); drawTrack();
-  bananas.forEach(b=>{ctx.fillStyle="#ffe25c";ctx.beginPath();ctx.arc(b.x,b.y,9,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#171b20";ctx.lineWidth=3;ctx.stroke();});
-  crates.forEach(drawCrate); cars.forEach(drawCar); particles.forEach(p=>{ctx.globalAlpha=Math.max(0,p.life*2);ctx.fillStyle=p.color;ctx.fillRect(p.x-3,p.y-3,6,6);ctx.globalAlpha=1;});
+function update(dt) {
+  if (state !== "running") return;
+  if (keys.has(" ")) activateUpgrade(player);
+  for (const car of cars) {
+    updateCar(car, dt);
+    collectCrates(car, dt);
+  }
+  updateHazards(dt);
+  camera.x += (player.x - camera.x) * Math.min(1, dt * 4.8);
+  camera.y += (player.y - camera.y) * Math.min(1, dt * 4.8);
+  if (player.finished) finishRace();
+  updateHud();
 }
 
-function loop(now){ const dt=Math.min(.033,(now-last)/1000||0);last=now;update(dt);draw();requestAnimationFrame(loop); }
-LANDMARKS.forEach(landmark => { landmark.pos = pointOnTrack(landmark.t); landmark.seen = false; });
-document.querySelector("#startButton").addEventListener("click",reset); document.querySelector("#restartButton").addEventListener("click",reset);
-document.querySelectorAll(".upgrade-choice").forEach(button => button.addEventListener("click", () => chooseUpgrade(Number(button.dataset.upgrade))));
-document.addEventListener("keydown",e=>{keys.add(e.code);if(e.code==="Space"){e.preventDefault();useUpgrade(cars[0]);}}); document.addEventListener("keyup",e=>keys.delete(e.code));
-document.querySelectorAll(".mobile-controls button").forEach(b=>{ const code=b.dataset.key;b.addEventListener("pointerdown",e=>{e.preventDefault();keys.add(code);if(code==="Space")useUpgrade(cars[0]);});["pointerup","pointercancel","pointerleave"].forEach(ev=>b.addEventListener(ev,()=>keys.delete(code))); });
+function visibleCircle(x, y, r = 0) {
+  const w = canvas.width / window.devicePixelRatio;
+  const h = canvas.height / window.devicePixelRatio;
+  return x + r > camera.x - w / 2 && x - r < camera.x + w / 2 && y + r > camera.y - h / 2 && y - r < camera.y + h / 2;
+}
+
+function drawTrackStroke(width, color, shadow = false) {
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  if (shadow) {
+    ctx.shadowColor = "rgba(0, 0, 0, 0.35)";
+    ctx.shadowBlur = 22;
+    ctx.shadowOffsetY = 12;
+  }
+  ctx.beginPath();
+  ctx.moveTo(track[0].x, track[0].y);
+  for (let i = 1; i < track.length; i += 1) ctx.lineTo(track[i].x, track[i].y);
+  ctx.closePath();
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawDirectionArrows() {
+  ctx.save();
+  ctx.fillStyle = "rgba(255, 218, 75, 0.72)";
+  for (let i = 18; i < track.length; i += 54) {
+    const point = track[i];
+    if (!visibleCircle(point.x, point.y, 120)) continue;
+    const angle = directionAt(i);
+    ctx.save();
+    ctx.translate(point.x, point.y);
+    ctx.rotate(angle);
+    ctx.beginPath();
+    ctx.moveTo(34, 0);
+    ctx.lineTo(-18, -18);
+    ctx.lineTo(-8, 0);
+    ctx.lineTo(-18, 18);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+function drawCar(car) {
+  if (!visibleCircle(car.x, car.y, 80)) return;
+  ctx.save();
+  ctx.translate(car.x, car.y);
+  ctx.rotate(car.angle);
+  ctx.fillStyle = "rgba(0, 0, 0, 0.22)";
+  ctx.beginPath();
+  ctx.ellipse(0, 13, 32, 15, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = car.color;
+  roundRect(-27, -15, 54, 30, 7);
+  ctx.fill();
+  ctx.fillStyle = "#20212a";
+  roundRect(0, -11, 18, 22, 5);
+  ctx.fill();
+  ctx.fillStyle = "#f7fbff";
+  ctx.fillRect(19, -7, 7, 5);
+  ctx.fillRect(19, 3, 7, 5);
+  ctx.fillStyle = "#121318";
+  ctx.fillRect(-20, -20, 13, 8);
+  ctx.fillRect(8, -20, 13, 8);
+  ctx.fillRect(-20, 12, 13, 8);
+  ctx.fillRect(8, 12, 13, 8);
+  if (car.activeUpgrade?.id === "rocket") {
+    ctx.fillStyle = "#ff8b37";
+    ctx.beginPath();
+    ctx.moveTo(-30, 0);
+    ctx.lineTo(-54, -9);
+    ctx.lineTo(-48, 0);
+    ctx.lineTo(-54, 9);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "600 12px Inter, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(car.name, car.x, car.y - 32);
+}
+
+function roundRect(x, y, width, height, radius) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + width, y, x + width, y + height, radius);
+  ctx.arcTo(x + width, y + height, x, y + height, radius);
+  ctx.arcTo(x, y + height, x, y, radius);
+  ctx.arcTo(x, y, x + width, y, radius);
+  ctx.closePath();
+}
+
+function drawWorld() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const w = canvas.width / window.devicePixelRatio;
+  const h = canvas.height / window.devicePixelRatio;
+  ctx.save();
+  ctx.translate(w / 2 - camera.x, h / 2 - camera.y);
+
+  ctx.fillStyle = "#32573a";
+  ctx.fillRect(0, 0, WORLD.width, WORLD.height);
+
+  ctx.fillStyle = "rgba(255, 255, 255, 0.06)";
+  for (let x = 0; x < WORLD.width; x += 160) ctx.fillRect(x, 0, 2, WORLD.height);
+  for (let y = 0; y < WORLD.height; y += 160) ctx.fillRect(0, y, WORLD.width, 2);
+
+  for (const item of scenery) {
+    if (!visibleCircle(item.x, item.y, item.radius + 20)) continue;
+    ctx.fillStyle = item.rock ? "#8d9189" : item.color;
+    ctx.beginPath();
+    ctx.arc(item.x, item.y, item.radius, 0, Math.PI * 2);
+    ctx.fill();
+    if (!item.rock) {
+      ctx.fillStyle = "#5d3c28";
+      ctx.fillRect(item.x - 3, item.y + item.radius - 3, 6, 13);
+    }
+  }
+
+  drawTrackStroke(ROAD_EDGE, "#24402c", true);
+  drawTrackStroke(TRACK_WIDTH, "#5f6771");
+  drawTrackStroke(8, "rgba(255, 255, 255, 0.25)");
+  drawDirectionArrows();
+
+  const start = offsetPoint(0, 0);
+  const startAngle = directionAt(0) + Math.PI / 2;
+  ctx.save();
+  ctx.translate(start.x, start.y);
+  ctx.rotate(startAngle);
+  for (let row = -3; row < 4; row += 1) {
+    for (let col = -1; col < 1; col += 1) {
+      ctx.fillStyle = (row + col) % 2 === 0 ? "#f8f8f8" : "#1b1d24";
+      ctx.fillRect(col * 18, row * 18, 18, 18);
+    }
+  }
+  ctx.restore();
+
+  for (const crate of crates) {
+    if (crate.taken || !visibleCircle(crate.x, crate.y, 70)) continue;
+    const lift = Math.sin(performance.now() / 250 + crate.bob) * 4;
+    ctx.save();
+    ctx.translate(crate.x, crate.y + lift);
+    ctx.rotate(Math.PI / 4);
+    ctx.fillStyle = crate.type.color;
+    ctx.shadowColor = crate.type.color;
+    ctx.shadowBlur = 18;
+    ctx.fillRect(-15, -15, 30, 30);
+    ctx.restore();
+  }
+
+  ctx.fillStyle = "#f4df63";
+  for (const hazard of hazards) {
+    if (!visibleCircle(hazard.x, hazard.y, 50)) continue;
+    ctx.beginPath();
+    ctx.ellipse(hazard.x, hazard.y, 28, 14, 0.3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  for (const car of cars) drawCar(car);
+  ctx.restore();
+}
+
+function loop(time) {
+  const dt = Math.min(0.035, (time - lastTime) / 1000 || 0);
+  lastTime = time;
+  update(dt);
+  drawWorld();
+  requestAnimationFrame(loop);
+}
+
+window.addEventListener("resize", resizeCanvas);
+window.addEventListener("keydown", (event) => {
+  keys.add(event.key.toLowerCase());
+  if (event.code === "Space") event.preventDefault();
+});
+window.addEventListener("keyup", (event) => keys.delete(event.key.toLowerCase()));
+startButton.addEventListener("click", resetGame);
+restartButton.addEventListener("click", resetGame);
+for (const button of document.querySelectorAll(".mobile-controls button")) {
+  const key = button.dataset.key;
+  button.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    keys.add(key);
+  });
+  button.addEventListener("pointerup", () => keys.delete(key));
+  button.addEventListener("pointerleave", () => keys.delete(key));
+  button.addEventListener("pointercancel", () => keys.delete(key));
+}
+
+buildTrack();
+buildScenery();
+spawnCrates();
+resizeCanvas();
+camera = { ...track[0] };
+drawWorld();
 requestAnimationFrame(loop);

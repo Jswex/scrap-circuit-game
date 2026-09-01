@@ -13,8 +13,6 @@ button { font: inherit; }
 .topbar { display: flex; align-items: center; justify-content: space-between; padding: 0 18px; background: #101319; border-bottom: 1px solid #2b313a; }
 .brand { font-size: 17px; font-weight: 900; }
 .brand span { color: #ffce3a; }
-.credit-label { color: #9ca6b3; font-size: 10px; letter-spacing: .14em; }
-.credit-label strong { color: #ffce3a; font-size: 14px; margin-left: 5px; }
 .race-label { color: #9ca6b3; font-size: 12px; text-transform: uppercase; }
 .race-label strong { color: #f4f1e8; margin-left: 8px; }
 .build-tag { color: #ffce3a; font-size: 10px; font-weight: 900; }
@@ -44,37 +42,20 @@ h1 span { color: #ffce3a; }
 .controls span { display: grid; gap: 6px; }
 .controls small { color: #9ca6b3; font-size: 9px; font-weight: 800; }
 .instruction-list { display: grid; gap: 5px; max-width: 430px; margin: 0 0 22px; padding-left: 18px; color: #c5cbd2; font-size: 12px; text-align: left; }
-.difficulty-control { display: flex; align-items: center; gap: 11px; margin: 0 0 16px; font-size: 11px; font-weight: 900; color: #9ca6b3; }
-.difficulty-control select { padding: 6px 9px; background: #20262d; color: #f4f1e8; border: 1px solid #697482; font-size: 11px; font-weight: 900; cursor: pointer; }
-.difficulty-control select:hover { border-color: #ffce3a; }
 .primary-button { border: 0; padding: 14px 28px; background: #ffce3a; color: #101319; font-weight: 950; cursor: pointer; box-shadow: 5px 5px 0 #e85d38; }
 .primary-button:hover { transform: translateY(-2px); }
 .finish-panel h2 { margin: 0; font-size: clamp(34px, 6vw, 72px); }
-.upgrade-panel h2 { margin: 0; font-size: clamp(30px, 5vw, 58px); }
-.upgrade-choices { display: grid; grid-template-columns: repeat(2, minmax(180px, 260px)); gap: 10px; margin-top: 18px; }
-.upgrade-choice { display: grid; grid-template-columns: 38px 1fr; gap: 3px 9px; align-items: center; padding: 11px; border: 1px solid #697482; background: #20262d; color: #f4f1e8; text-align: left; cursor: pointer; }
-.upgrade-choice:hover, .upgrade-choice:focus-visible { border-color: #ffce3a; background: #2c353d; outline: none; transform: translateY(-2px); }
-.upgrade-choice > span { grid-row: span 2; display: grid; place-items: center; width: 34px; height: 34px; background: #ffce3a; color: #101319; font-size: 20px; font-weight: 900; }
-.upgrade-choice strong { font-size: 11px; }
-.upgrade-choice small { color: #9ca6b3; font-size: 10px; }
-.toast { position: absolute; top: 122px; left: 50%; transform: translate(-50%, -8px); padding: 8px 14px; background: #f4f1e8; color: #11151a; font-size: 12px; font-weight: 900; opacity: 0; transition: .18s; pointer-events: none; }
-.toast.show { opacity: 1; transform: translate(-50%, 0); }
-.countdown { position: absolute; inset: 0; display: grid; place-items: center; font: 950 120px/1 Impact, sans-serif; color: #ffce3a; text-shadow: 7px 7px 0 #101319; pointer-events: none; }
 .mobile-controls { display: none; }
 
 @media (max-width: 700px), (pointer: coarse) {
   .race-label { display: none; }
-  .credit-label { margin-left: auto; }
   .topbar { padding: 0 12px; }
   .hud { top: 10px; min-width: 92px; padding: 7px 9px; }
   .hud-left { left: 10px; } .hud-right { right: 10px; }
   .hud strong { font-size: 24px; }
   .upgrade-hud { bottom: 84px; min-width: 250px; }
-  .upgrade-choices { grid-template-columns: 1fr; width: min(300px, 100%); }
-  .upgrade-panel { overflow-y: auto; }
-  .difficulty-control { flex-direction: column; gap: 6px; }
   .mobile-controls { position: absolute; inset: auto 12px 14px; display: flex; justify-content: space-between; pointer-events: none; }
-  .mobile-controls button { pointer-events: auto; width: 56px; height: 56px; border: 1px solid #67717c; background: rgba(16,19,24,.8); color: white; font-size: 24px; }
-  .mobile-controls .use-button { margin-left: auto; background: #ffce3a; color: #111; }
+  .mobile-controls button { pointer-events: auto; width: 56px; height: 56px; border: 1px solid #67717c; background: rgba(16,19,24,.8); color: white; font-size: 24px; font-weight: 900; }
+  .mobile-controls .use-button { width: 84px; margin-left: auto; background: #ffce3a; color: #111; font-size: 13px; }
   h1 { font-size: 64px; }
 }
