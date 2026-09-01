@@ -157,16 +157,19 @@ function buildScenery() {
 function spawnCrates() {
   crates = [];
   crateSeed += 1;
+  let crateNumber = 0;
   for (let i = 34; i < track.length; i += 42) {
     const lane = seededNoise(i + crateSeed * 9) > 0.5 ? -42 : 42;
     const pos = offsetPoint(i, lane);
+    const upgradeIndex = (crateNumber + crateSeed - 1) % upgrades.length;
     crates.push({
       x: pos.x,
       y: pos.y,
-      type: upgrades[(i + crateSeed) % upgrades.length],
+      type: upgrades[upgradeIndex],
       taken: false,
       bob: seededNoise(i + 50) * Math.PI * 2,
     });
+    crateNumber += 1;
   }
 }
 

@@ -2,6 +2,27 @@
 
 This is the chronological record of the project. New work should be added at the top of the log under a dated heading.
 
+## 2026-09-01 - Powerup Variety Fix
+
+### What changed
+
+- Fixed crate spawning so all four upgrades can appear during a race.
+- Changed the upgrade assignment from track-index math to an explicit crate counter that rotates through Rocket Sneeze, Junk Magnet, Phase Drive, and Banana Printer.
+- Updated the build label to `PLAYTEST BUILD 04`.
+
+### Why
+
+A follow-up test note showed only Rocket Sneeze and Phase Drive were appearing. The cause was that crates were spaced every 42 track points, and `42 % 4` only alternated between two upgrade indexes. Counting crates directly gives reliable variety.
+
+### Verification
+
+- Inspected the spawning formula before and after the fix.
+- Confirmed the new formula cycles through all four upgrade indexes instead of only two.
+
+### Known limitations
+
+- A live race should still be replayed to confirm the visual distribution feels good from the player's camera view.
+
 ## 2026-09-01 - Powerup Readability Revision
 
 ### What changed

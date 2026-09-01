@@ -2,6 +2,36 @@
 
 Use this for the real unfamiliar-user test required by the game rubric. Let the player try silently first. Do not explain the controls unless they are fully stuck; write down what happened before helping.
 
+## Test Note - Powerup Variety
+
+- Date: 2026-09-01
+- Tester relationship to you: Follow-up observation reported by project owner
+- Device/browser: Not recorded
+- Play URL or local build: Scrap Circuit public build before `PLAYTEST BUILD 04`
+- Was the tester signed out of GitHub? Not recorded
+- Was this tested on a second device? Not recorded
+- Duration: Not recorded
+
+### Most Consequential Friction
+
+- Biggest confusion or slowdown: Only Rocket Sneeze and Phase Drive were appearing as powerups.
+- Why it matters for the game: The upgrade system is supposed to create variability and surprise. Seeing only two effects makes the race feel repetitive and hides half of the game's creative mechanics.
+- Evidence from the test: Project owner reported that only Rocket Sneeze and Phase Drive were popping up.
+
+### Revision Made
+
+- Change made after the test: Changed crate spawning to rotate through all four upgrade types using a crate counter instead of track index math.
+- File(s) changed: `src/game.js`, `index.html`
+- Why this change targets the friction: The new formula guarantees Rocket Sneeze, Junk Magnet, Phase Drive, and Banana Printer are all assigned across the crate line.
+
+### Verification Attempt
+
+- Date: Pending
+- Tester: Pending
+- Did the original friction improve? Pending
+- What new issue appeared, if any? Pending
+- Evidence: Needs a race replay after `PLAYTEST BUILD 04` is live.
+
 ## Test Note - Powerup Readability
 
 - Date: 2026-09-01
