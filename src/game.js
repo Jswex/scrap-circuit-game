@@ -47,7 +47,7 @@ const upgrades = [
     id: "magnet",
     name: "Junk Magnet",
     color: "#49d5ff",
-    hint: "SPACE pulls nearby boost crates into your car.",
+    hint: "SPACE vacuums crates and drags nearby bots off pace.",
     duration: 6.2,
   },
   {
@@ -69,6 +69,7 @@ const upgrades = [
 let track = [];
 let scenery = [];
 let crates = [];
+let boostPads = [];
 let hazards = [];
 let sparks = [];
 let callouts = [];
@@ -173,6 +174,20 @@ function spawnCrates() {
   }
 }
 
+function buildBoostPads() {
+  boostPads = [];
+  for (let i = 58; i < track.length; i += 78) {
+    const lane = seededNoise(i + 1400) > 0.5 ? -48 : 48;
+    const pos = offsetPoint(i, lane);
+    boostPads.push({
+      x: pos.x,
+      y: pos.y,
+      angle: directionAt(i),
+      cooldown: 0,
+    });
+  }
+}
+
 function createCar(name, color, lane, index, controlled = false) {
   const angle = directionAt(0);
   const pos = offsetPoint(0, lane);
@@ -204,6 +219,7 @@ function resetGame() {
   hazards = [];
   sparks = [];
   callouts = [];
+  for (const pad of boostPads) pad.cooldown = 0;
   spawnCrates();
   cars = [
     createCar("You", "#ff5151", -35, 0, true),
@@ -376,6 +392,45 @@ function collectCrates(car, dt) {
   }
 }
 
+function useBoostPads(car, dt) {
+  for (const pad of boostPads) {
+    if (pad.cooldown > 0 || car.finished) continue;
+    if (Math.hypot(car.x - pad.x, car.y - pad.y) < 52) {
+      car.speed += car.controlled ? 255 : 195;
+      pad.cooldown = 1.9;
+      burst(pad.x, pad.y, "#ff7a2f", 26, 210);
+      if (car.controlled) callouts.push({ x: pad.x, y: pad.y - 42, text: "SPEED PAD", color: "#ff7a2f", life: 0.85 });
+    }
+  }
+}
+
+function applyMagnetFields(dt) {
+  for (const magnetCar of cars) {
+    if (magnetCar.activeUpgrade?.id !== "magnet" || magnetCar.finished) continue;
+    for (const target of cars) {
+      if (target === magnetCar || target.finished) continue;
+      const dx = magnetCar.x - target.x;
+      const dy = magnetCar.y - target.y;
+      const distance = Math.hypot(dx, dy);
+      if (distance > 285 || distance < 1) continue;
+      const pull = (1 - distance / 285) * 220;
+      target.x += (dx / distance) * pull * dt;
+      target.y += (dy / distance) * pull * dt;
+      target.speed *= 1 - 1.45 * dt;
+      target.angle += Math.sin(performance.now() / 90 + target.aiWobble) * 1.2 * dt;
+      if (magnetCar.controlled && seededNoise(performance.now() + target.aiWobble) > 0.965) {
+        burst(target.x, target.y, "#49d5ff", 6, 90);
+      }
+    }
+  }
+}
+
+function updateBoostPads(dt) {
+  for (const pad of boostPads) {
+    pad.cooldown = Math.max(0, pad.cooldown - dt);
+  }
+}
+
 function updateHazards(dt) {
   for (const hazard of hazards) {
     hazard.life -= dt;
@@ -457,10 +512,13 @@ function update(dt) {
   if (state !== "running") return;
   if (keys.has(" ")) activateUpgrade(player);
   updateEffects(dt);
+  updateBoostPads(dt);
   for (const car of cars) {
     updateCar(car, dt);
     collectCrates(car, dt);
+    useBoostPads(car, dt);
   }
+  applyMagnetFields(dt);
   updateHazards(dt);
   camera.x += (player.x - camera.x) * Math.min(1, dt * 4.8);
   camera.y += (player.y - camera.y) * Math.min(1, dt * 4.8);
@@ -531,10 +589,13 @@ function drawCar(car) {
   }
   if (car.activeUpgrade?.id === "magnet") {
     ctx.strokeStyle = "#49d5ff";
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 4;
     ctx.globalAlpha = 0.35 + Math.sin(performance.now() / 120) * 0.15;
     ctx.beginPath();
-    ctx.arc(0, 0, 82, 0, Math.PI * 2);
+    ctx.arc(0, 0, 118, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, 0, 64, 0, Math.PI * 2);
     ctx.stroke();
     ctx.globalAlpha = 1;
   }
@@ -641,6 +702,30 @@ function drawWorld() {
   drawTrackStroke(8, "rgba(255, 255, 255, 0.25)");
   drawDirectionArrows();
 
+  for (const pad of boostPads) {
+    if (!visibleCircle(pad.x, pad.y, 80)) continue;
+    ctx.save();
+    ctx.translate(pad.x, pad.y);
+    ctx.rotate(pad.angle);
+    ctx.globalAlpha = pad.cooldown > 0 ? 0.34 : 1;
+    ctx.fillStyle = "#ff7a2f";
+    ctx.shadowColor = "#ff7a2f";
+    ctx.shadowBlur = pad.cooldown > 0 ? 0 : 18;
+    roundRect(-34, -21, 68, 42, 8);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "#ffd45c";
+    ctx.beginPath();
+    ctx.moveTo(22, 0);
+    ctx.lineTo(-8, -12);
+    ctx.lineTo(-2, 0);
+    ctx.lineTo(-8, 12);
+    ctx.closePath();
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
   const start = offsetPoint(0, 0);
   const startAngle = directionAt(0) + Math.PI / 2;
   ctx.save();
@@ -690,6 +775,21 @@ function drawWorld() {
     ctx.stroke();
   }
 
+  if (player?.activeUpgrade?.id === "magnet") {
+    ctx.save();
+    ctx.strokeStyle = "rgba(73, 213, 255, 0.68)";
+    ctx.lineWidth = 4;
+    ctx.setLineDash([12, 9]);
+    for (const car of cars) {
+      if (car === player || car.finished || Math.hypot(car.x - player.x, car.y - player.y) > 285) continue;
+      ctx.beginPath();
+      ctx.moveTo(player.x, player.y);
+      ctx.lineTo(car.x, car.y);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   for (const car of cars) drawCar(car);
   drawEffects();
   ctx.restore();
@@ -724,6 +824,7 @@ for (const button of document.querySelectorAll(".mobile-controls button")) {
 
 buildTrack();
 buildScenery();
+buildBoostPads();
 spawnCrates();
 resizeCanvas();
 camera = { ...track[0] };

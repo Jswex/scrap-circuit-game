@@ -2,6 +2,36 @@
 
 Use this for the real unfamiliar-user test required by the game rubric. Let the player try silently first. Do not explain the controls unless they are fully stuck; write down what happened before helping.
 
+## Test Note - Magnet And Track Variety
+
+- Date: 2026-09-01
+- Tester relationship to you: Follow-up observation reported by project owner
+- Device/browser: Not recorded
+- Play URL or local build: Scrap Circuit public build before `PLAYTEST BUILD 05`
+- Was the tester signed out of GitHub? Not recorded
+- Was this tested on a second device? Not recorded
+- Duration: Not recorded
+
+### Most Consequential Friction
+
+- Biggest confusion or slowdown: Junk Magnet still did not feel like a great powerup, and the track needed more ground-based speed opportunities.
+- Why it matters for the game: If one upgrade feels clearly worse than the others, players stop being excited by crate randomness. Ground boosts also create more active driving choices between powerup moments.
+- Evidence from the test: Project owner asked to add speed boosts on the ground and rework Magnet because it "really isnt that great of a powerup."
+
+### Revision Made
+
+- Change made after the test: Added orange speed pads with cooldowns, then reworked Junk Magnet to pull crates and disrupt nearby bots with visible blue tether lines.
+- File(s) changed: `src/game.js`, `index.html`
+- Why this change targets the friction: Speed pads give players a frequent visible driving reward, and Magnet now has direct race impact instead of only helping with future crate collection.
+
+### Verification Attempt
+
+- Date: Pending
+- Tester: Pending
+- Did the original friction improve? Pending
+- What new issue appeared, if any? Pending
+- Evidence: Needs a race replay after `PLAYTEST BUILD 05` is live.
+
 ## Test Note - Powerup Variety
 
 - Date: 2026-09-01

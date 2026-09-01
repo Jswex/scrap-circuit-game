@@ -2,6 +2,29 @@
 
 This is the chronological record of the project. New work should be added at the top of the log under a dated heading.
 
+## 2026-09-01 - Speed Pads And Magnet Rework
+
+### What changed
+
+- Added orange speed pads on the track that give cars an instant ground boost and briefly dim while recharging.
+- Updated the start screen instructions to tell players to hit orange speed pads.
+- Reworked Junk Magnet so it now vacuums crates and also disrupts nearby bots with a visible blue pull field.
+- Added blue Magnet tether lines to nearby crates and affected bots.
+- Updated the build label to `PLAYTEST BUILD 05`.
+
+### Why
+
+The race needed more moment-to-moment variety between crate pickups, and the Magnet powerup still felt weaker than the others. Speed pads add a readable driving target on the road, while the Magnet rework gives the powerup both collection value and competitive value.
+
+### Verification
+
+- Inspected the boost-pad initialization, update, collision, cooldown, and rendering paths.
+- Inspected the Magnet crate-pull and bot-disruption paths.
+
+### Known limitations
+
+- A live playtest should confirm boost-pad placement feels fair and Magnet does not feel too disruptive.
+
 ## 2026-09-01 - Powerup Variety Fix
 
 ### What changed
